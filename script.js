@@ -147,10 +147,10 @@ class StyloApp {
 
       console.log(`📄 Text extracted: ${copiedText.substring(0, 100)}...`);
       
-      // 2. Call Supabase Edge Function
+      // 2. Call Supabase Edge Function (provider choisi dans config)
       let enhancedText;
       try {
-        enhancedText = await this.callSupabaseEnhancePrompt(copiedText);
+        enhancedText = await this.callEnhancePrompt(copiedText);
       } catch (error) {
         await window.electronAPI.showErrorPopup({
           title: 'Erreur Supabase',
@@ -346,10 +346,10 @@ class StyloApp {
 
       copiedText = copiedText.trim();
       
-      console.log('🤖 Step 3: Calling Supabase rephrase-text...');
+      console.log('🤖 Step 3: Calling Supabase rephrase-text (provider choisi dans config)...');
       let rephrasedText;
       try {
-        rephrasedText = await this.callSupabaseRephraseText(copiedText);
+        rephrasedText = await this.callRephraseText(copiedText);
       } catch (error) {
         await window.electronAPI.showErrorPopup({
           title: 'Erreur Supabase',
@@ -459,10 +459,10 @@ class StyloApp {
       
       copiedText = copiedText.trim();
       
-      console.log('🤖 Step 3: Calling Supabase translate-text...');
+      console.log('🤖 Step 3: Calling Supabase translate-text (provider choisi dans config)...');
       let translatedText;
       try {
-        translatedText = await this.callSupabaseTranslateText(copiedText);
+        translatedText = await this.callTranslateText(copiedText);
       } catch (error) {
         await window.electronAPI.showErrorPopup({
           title: 'Erreur Supabase',
@@ -520,6 +520,126 @@ class StyloApp {
     console.log('Fonctionnalité vocale à venir');
   }
 
+  // ========== HELPER POUR CHOISIR LE PROVIDER ==========
+  
+  // Fonction pour choisir automatiquement le provider selon la config
+  async callEnhancePrompt(text) {
+    const provider = window.APP_CONFIG.providers.enhancePrompt;
+    console.log(`🎯 Using provider: ${provider} for enhance-prompt`);
+    
+    if (provider === 'openrouter') {
+      return await this.callSupabaseEnhancePromptOpenRouter(text);
+    } else {
+      return await this.callSupabaseEnhancePrompt(text);
+    }
+  }
+  
+  async callRephraseText(text) {
+    const provider = window.APP_CONFIG.providers.rephraseText;
+    console.log(`🎯 Using provider: ${provider} for rephrase-text`);
+    
+    if (provider === 'openrouter') {
+      return await this.callSupabaseRephraseTextOpenRouter(text);
+    } else {
+      return await this.callSupabaseRephraseText(text);
+    }
+  }
+  
+  async callTranslateText(text) {
+    const provider = window.APP_CONFIG.providers.translateText;
+    console.log(`🎯 Using provider: ${provider} for translate-text`);
+    
+    if (provider === 'openrouter') {
+      return await this.callSupabaseTranslateTextOpenRouter(text);
+    } else {
+      return await this.callSupabaseTranslateTextOld(text);
+    }
+  }
+
+  // ========== FONCTIONS OPENROUTER (PAR DÉFAUT) ==========
+  
+  // Fonction pour appeler Supabase enhance-prompt-openrouter (Llama 3.3)
+  async callSupabaseEnhancePromptOpenRouter(text) {
+    try {
+      console.log('🤖 Calling Supabase enhance-prompt-openrouter (Llama 3.3)...');
+      
+      const url = `${window.SUPABASE_CONFIG.url}${window.SUPABASE_CONFIG.functions.enhancePrompt}`;
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), window.APP_CONFIG.networkTimeout);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${window.SUPABASE_CONFIG.anonKey}`
+        },
+        body: JSON.stringify({ text }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`HTTP error! status: ${response.status} - ${JSON.stringify(errorData)}`);
+      }
+
+      const data = await response.json();
+      console.log('🚀 OpenRouter enhance response:', data);
+      return data.enhanced_text || data.result;
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.error('❌ Request timeout');
+        throw new Error('Timeout: La requête a pris trop de temps');
+      }
+      console.error('❌ Error calling Supabase OpenRouter:', error);
+      throw error;
+    }
+  }
+
+  // Fonction pour appeler Supabase rephrase-text-openrouter (Llama 3.3)
+  async callSupabaseRephraseTextOpenRouter(text) {
+    try {
+      console.log('🤖 Calling Supabase rephrase-text-openrouter (Llama 3.3)...');
+      
+      const url = `${window.SUPABASE_CONFIG.url}${window.SUPABASE_CONFIG.functions.rephraseText}`;
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), window.APP_CONFIG.networkTimeout);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${window.SUPABASE_CONFIG.anonKey}`
+        },
+        body: JSON.stringify({ text }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`HTTP error! status: ${response.status} - ${JSON.stringify(errorData)}`);
+      }
+
+      const data = await response.json();
+      console.log('🚀 OpenRouter rephrase response:', data);
+      return data.rephrased_text || data.result;
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.error('❌ Request timeout');
+        throw new Error('Timeout: La requête a pris trop de temps');
+      }
+      console.error('❌ Error calling Supabase OpenRouter:', error);
+      throw error;
+    }
+  }
+
+  // ========== FONCTIONS OPENAI (FALLBACK) ==========
+  
   // Fonction pour appeler Supabase rephrase-text
   async callSupabaseRephraseText(text) {
     try {
@@ -559,10 +679,10 @@ class StyloApp {
         }
     }
 
-  // Fonction pour appeler Supabase translate-text
-  async callSupabaseTranslateText(text) {
+  // Fonction pour appeler Supabase translate-text (OpenAI)
+  async callSupabaseTranslateTextOld(text) {
     try {
-      console.log('🤖 Calling Supabase translate-text...');
+      console.log('🤖 Calling Supabase translate-text (OpenAI)...');
       
       const url = `${window.SUPABASE_CONFIG.url}${window.SUPABASE_CONFIG.functions.translateText}`;
       
@@ -594,6 +714,46 @@ class StyloApp {
         throw new Error('Timeout: La requête a pris trop de temps');
       }
       console.error('❌ Error calling Supabase:', error);
+      throw error;
+    }
+  }
+
+  // Fonction pour appeler Supabase translate-text-openrouter (Llama 3.3 - Plus rapide!)
+  async callSupabaseTranslateTextOpenRouter(text) {
+    try {
+      console.log('🤖 Calling Supabase translate-text-openrouter (Llama 3.3)...');
+      
+      const url = `${window.SUPABASE_CONFIG.url}${window.SUPABASE_CONFIG.functions.translateTextOpenRouter}`;
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), window.APP_CONFIG.networkTimeout);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${window.SUPABASE_CONFIG.anonKey}`
+        },
+        body: JSON.stringify({ text }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`HTTP error! status: ${response.status} - ${JSON.stringify(errorData)}`);
+      }
+
+      const data = await response.json();
+      console.log('🚀 OpenRouter response:', data);
+      return data.translated_text || data.result;
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.error('❌ Request timeout');
+        throw new Error('Timeout: La requête a pris trop de temps');
+      }
+      console.error('❌ Error calling Supabase OpenRouter:', error);
       throw error;
     }
   }

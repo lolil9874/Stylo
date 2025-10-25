@@ -1,4 +1,4 @@
-const { app, BrowserWindow, screen, clipboard, globalShortcut, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, screen, clipboard, globalShortcut, ipcMain, shell, Menu } = require('electron');
 const path = require('path');
 const { exec } = require('child_process');
 const fs = require('fs');
@@ -48,10 +48,146 @@ function createWindow() {
   }
 }
 
-// IPC Handlers pour clipboard
-ipcMain.handle('get-clipboard-text', async () => {
-  return clipboard.readText();
-});
+// MARK: - Menu Configuration
+function createMenu() {
+  // Charger la config actuelle
+  const configPath = path.join(__dirname, 'config.js');
+  let config = fs.readFileSync(configPath, 'utf8');
+  
+  // Fonction pour extraire le provider actuel
+  const getProvider = (buttonName) => {
+    const regex = new RegExp(`${buttonName}:\\s*'(\\w+)'`);
+    const match = config.match(regex);
+    return match ? match[1] : 'openrouter';
+  };
+  
+  const enhanceProvider = getProvider('enhancePrompt');
+  const rephraseProvider = getProvider('rephraseText');
+  const translateProvider = getProvider('translateText');
+  
+  const template = [
+    {
+      label: 'Stylo',
+      submenu: [
+        {
+          label: 'About Stylo',
+          role: 'about'
+        },
+        { type: 'separator' },
+        {
+          label: 'Quit Stylo',
+          accelerator: 'CmdOrCtrl+Q',
+          click: () => app.quit()
+        }
+      ]
+    },
+    {
+      label: 'Providers',
+      submenu: [
+        {
+          label: '⭐ Star Button (Enhance Prompt)',
+          submenu: [
+            {
+              label: `OpenRouter (Llama 3.3) ${enhanceProvider === 'openrouter' ? '✓' : ''}`,
+              type: 'radio',
+              checked: enhanceProvider === 'openrouter',
+              click: () => updateProvider('enhancePrompt', 'openrouter')
+            },
+            {
+              label: `OpenAI (GPT-4o-mini) ${enhanceProvider === 'openai' ? '✓' : ''}`,
+              type: 'radio',
+              checked: enhanceProvider === 'openai',
+              click: () => updateProvider('enhancePrompt', 'openai')
+            }
+          ]
+        },
+        {
+          label: '✍️ Pen Button (Rephrase Text)',
+          submenu: [
+            {
+              label: `OpenRouter (Llama 3.3) ${rephraseProvider === 'openrouter' ? '✓' : ''}`,
+              type: 'radio',
+              checked: rephraseProvider === 'openrouter',
+              click: () => updateProvider('rephraseText', 'openrouter')
+            },
+            {
+              label: `OpenAI (GPT-4o-mini) ${rephraseProvider === 'openai' ? '✓' : ''}`,
+              type: 'radio',
+              checked: rephraseProvider === 'openai',
+              click: () => updateProvider('rephraseText', 'openai')
+            }
+          ]
+        },
+        {
+          label: '🌍 Translate Button',
+          submenu: [
+            {
+              label: `OpenRouter (Llama 3.3) ${translateProvider === 'openrouter' ? '✓' : ''}`,
+              type: 'radio',
+              checked: translateProvider === 'openrouter',
+              click: () => updateProvider('translateText', 'openrouter')
+            },
+            {
+              label: `OpenAI (GPT-4o-mini) ${translateProvider === 'openai' ? '✓' : ''}`,
+              type: 'radio',
+              checked: translateProvider === 'openai',
+              click: () => updateProvider('translateText', 'openai')
+            }
+          ]
+        }
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' }
+      ]
+    }
+  ];
+  
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+}
+
+// Fonction pour mettre à jour le provider dans config.js
+function updateProvider(buttonName, provider) {
+  const configPath = path.join(__dirname, 'config.js');
+  let config = fs.readFileSync(configPath, 'utf8');
+  
+  // Remplacer le provider pour le bouton spécifié
+  const regex = new RegExp(`(${buttonName}:\\s*)'\\w+'`, 'g');
+  config = config.replace(regex, `$1'${provider}'`);
+  
+  // Sauvegarder
+  fs.writeFileSync(configPath, config, 'utf8');
+  
+  // Recharger le menu
+  createMenu();
+  
+  // Notifier l'utilisateur
+  if (mainWindow) {
+    mainWindow.webContents.send('provider-changed', { buttonName, provider });
+  }
+  
+  console.log(`✅ Provider changed: ${buttonName} → ${provider}`);
+  console.log('🔄 Restarting app to apply changes...');
+  
+  // REDÉMARRER L'APP COMPLÈTEMENT pour recharger config.js
+  app.relaunch();
+  app.exit(0);
+}
+
+// MARK: - IPC Handlers Setup
+function setupIpcHandlers() {
+  // IPC Handlers pour clipboard
+  ipcMain.handle('get-clipboard-text', async () => {
+    return clipboard.readText();
+  });
 
 ipcMain.handle('set-clipboard-text', async (event, text) => {
   clipboard.writeText(text);
@@ -725,10 +861,17 @@ ipcMain.handle('ax-set-focused-text', async (event, text) => {
     });
   });
 });
+} // Fin de setupIpcHandlers()
 
 // Application event management
 app.whenReady().then(() => {
   loadPermissionConfig();
+  
+  // Setup IPC handlers FIRST
+  setupIpcHandlers();
+  
+  // Créer le menu
+  createMenu();
   
   // Lancer directement l'application (onboarding supprimé)
   createWindow();

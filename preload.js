@@ -70,7 +70,10 @@ copyLogs: (logs) => ipcRenderer.invoke('copy-logs', logs),
 
 // Error popup listeners
 onErrorData: (callback) => ipcRenderer.on('error-data', (event, data) => callback(data)),
-onRetryEnhancement: (callback) => ipcRenderer.on('retry-enhancement', () => callback())
+onRetryEnhancement: (callback) => ipcRenderer.on('retry-enhancement', () => callback()),
+
+// Provider change listener
+onProviderChanged: (callback) => ipcRenderer.on('provider-changed', (event, data) => callback(data))
 });
 
 console.log('✅ Preload script loaded - electronAPI ready');
