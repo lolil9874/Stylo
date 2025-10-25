@@ -1,0 +1,16 @@
+{
+  "name": "stylo",
+  "version": "1.0.0",
+  "description": "Stylo - Interface flottante macOS avec IA pour l'amélioration de texte",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "keywords": ["electron", "macos", "floating", "interface", "ai", "text-enhancement", "stylo"],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^27.0.0"
+  }
+}

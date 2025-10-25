@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API Supabase</title>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #ffffff;
+        }
+        
+        h1 {
+            color: #4fc3f7;
+        }
+        
+        button {
+            background: #4fc3f7;
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        
+        button:hover {
+            background: #29b6f6;
+        }
+        
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        
+        #output {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            border: 2px solid #4fc3f7;
+        }
+        
+        .log {
+            margin: 5px 0;
+            padding: 5px;
+        }
+        
+        .log.info {
+            color: #4fc3f7;
+        }
+        
+        .log.success {
+            color: #4caf50;
+        }
+        
+        .log.error {
+            color: #f44336;
+        }
+        
+        .log.warning {
+            color: #ff9800;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test API Supabase - Enhance Prompt</h1>
+    
+    <p>Ce script teste directement votre fonction Supabase <code>enhance-prompt</code></p>
+    
+    <button onclick="testAPI()">🚀 Tester l'API</button>
+    <button onclick="clearOutput()">🗑️ Effacer</button>
+    
+    <div id="output">
+        <div class="log info">Cliquez sur "Tester l'API" pour lancer le test...</div>
+    </div>
+
+    <script>
+        const output = document.getElementById('output');
+        
+        function log(message, type = 'info') {
+            const logElement = document.createElement('div');
+            logElement.className = `log ${type}`;
+            logElement.textContent = message;
+            output.appendChild(logElement);
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        function clearOutput() {
+            output.innerHTML = '<div class="log info">Logs effacés. Prêt pour un nouveau test...</div>';
+        }
+        
+        async function testAPI() {
+            clearOutput();
+            
+            const supabaseUrl = 'https://vkyfdunlbpzwxryqoype.supabase.co';
+            const functionName = 'enhance-prompt';
+            const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZreWZkdW5sYnB6d3hyeXFveXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEzNTQ3OTUsImV4cCI6MjA3NjkzMDc5NX0.Qnduuj9IwhWtrOueYmBJP5nOCUS_XimrBZuvNcfT530';
+            const url = `${supabaseUrl}/functions/v1/${functionName}`;
+            
+            const testText = "Write a story about a cat";
+            
+            try {
+                log('🔵 Starting API test...', 'info');
+                log(`📡 URL: ${url}`, 'info');
+                log(`📝 Test text: "${testText}"`, 'info');
+                log('⏳ Sending request...', 'info');
+                
+                const startTime = Date.now();
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${anonKey}`
+                    },
+                    body: JSON.stringify({
+                        text: testText
+                    })
+                });
+                
+                const duration = Date.now() - startTime;
+                
+                log(`📬 Response status: ${response.status} (${duration}ms)`, response.ok ? 'success' : 'error');
+                
+                const responseText = await response.text();
+                log(`📦 Raw response: ${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}`, 'info');
+                
+                if (!response.ok) {
+                    log(`❌ ERROR: API returned status ${response.status}`, 'error');
+                    try {
+                        const errorData = JSON.parse(responseText);
+                        log(`❌ Error details: ${JSON.stringify(errorData, null, 2)}`, 'error');
+                    } catch (e) {
+                        log(`❌ Error response (not JSON): ${responseText}`, 'error');
+                    }
+                    return;
+                }
+                
+                const data = JSON.parse(responseText);
+                
+                if (data.enhanced_text) {
+                    log('✅ SUCCESS! Enhanced text received:', 'success');
+                    log('─────────────────────────────────────', 'info');
+                    log(data.enhanced_text, 'success');
+                    log('─────────────────────────────────────', 'info');
+                    
+                    if (data.model_used) {
+                        log(`🤖 Model used: ${data.model_used}`, 'info');
+                    }
+                } else {
+                    log('⚠️ WARNING: No enhanced_text in response', 'warning');
+                    log(`Full response: ${JSON.stringify(data, null, 2)}`, 'warning');
+                }
+                
+            } catch (error) {
+                log(`❌ EXCEPTION: ${error.message}`, 'error');
+                log(`Stack: ${error.stack}`, 'error');
+                
+                if (error.message.includes('Failed to fetch')) {
+                    log('', 'error');
+                    log('⚠️ Possible causes:', 'warning');
+                    log('  1. CORS not configured properly', 'warning');
+                    log('  2. Function not deployed', 'warning');
+                    log('  3. Network/firewall issue', 'warning');
+                    log('  4. Invalid Supabase URL', 'warning');
+                }
+            }
+        }
+        
+        // Auto-test au chargement (commentez si vous ne voulez pas)
+        // window.addEventListener('load', () => setTimeout(testAPI, 1000));
+    </script>
+</body>
+</html>
+

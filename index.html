@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stylo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="floating-panel draggable-area">
+        <!-- Angular gradient border -->
+        <div class="gradient-border"></div>
+        
+        <div class="button-container">
+            <!-- Button 1: Text Rephrasing (pen tool) -->
+            <button class="action-button active" data-action="reformulation">
+                <img src="icone/pen-tool-plus.svg" class="button-icon" alt="Reformulation">
+            </button>
+
+            <!-- Button 2: Text Translation -->
+            <button class="action-button" data-action="translation">
+                <img src="icone/translate-01.svg" class="button-icon" alt="Translation">
+            </button>
+
+            <!-- Button 3: Prompt Improvement (star) -->
+            <button class="action-button" data-action="improvement">
+                <img src="icone/star-06.svg" class="button-icon" alt="Improvement">
+            </button>
+
+            <!-- Button 4: Voice Input (microphone) -->
+            <button class="action-button voice-button" data-action="voice">
+                <img src="icone/microphone-02.svg" class="button-icon" alt="Voice">
+            </button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

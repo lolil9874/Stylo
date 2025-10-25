@@ -1,0 +1,130 @@
+{
+  "functions": {
+    "enhance-prompt": {
+      "name": "enhance-prompt",
+      "description": "Enhance prompts using GPT-4o-mini for better clarity and effectiveness",
+      "endpoint": "/functions/v1/enhance-prompt",
+      "method": "POST",
+      "parameters": {
+        "text": {
+          "type": "string",
+          "required": true,
+          "description": "The text to enhance"
+        }
+      },
+      "response": {
+        "enhanced_text": "string",
+        "original_text": "string",
+        "model_used": "string"
+      }
+    },
+    "rephrase-text": {
+      "name": "rephrase-text",
+      "description": "Rephrase text in different styles using GPT-4o-mini",
+      "endpoint": "/functions/v1/rephrase-text",
+      "method": "POST",
+      "parameters": {
+        "text": {
+          "type": "string",
+          "required": true,
+          "description": "The text to rephrase"
+        },
+        "style": {
+          "type": "string",
+          "required": false,
+          "default": "professional",
+          "options": ["professional", "casual", "academic", "creative", "concise", "detailed"],
+          "description": "The style to rephrase the text in"
+        }
+      },
+      "response": {
+        "rephrased_text": "string",
+        "original_text": "string",
+        "style_used": "string",
+        "model_used": "string"
+      }
+    },
+    "translate-text": {
+      "name": "translate-text",
+      "description": "Translate text between languages using GPT-4o-mini",
+      "endpoint": "/functions/v1/translate-text",
+      "method": "POST",
+      "parameters": {
+        "text": {
+          "type": "string",
+          "required": true,
+          "description": "The text to translate"
+        },
+        "target_language": {
+          "type": "string",
+          "required": false,
+          "default": "English",
+          "description": "The target language for translation"
+        },
+        "source_language": {
+          "type": "string",
+          "required": false,
+          "default": "auto",
+          "description": "The source language (auto-detect if not specified)"
+        }
+      },
+      "response": {
+        "translated_text": "string",
+        "original_text": "string",
+        "source_language": "string",
+        "target_language": "string",
+        "model_used": "string"
+      }
+    },
+    "voice-processing": {
+      "name": "voice-processing",
+      "description": "Process voice input for transcription and analysis using OpenAI Whisper and GPT-4o-mini",
+      "endpoint": "/functions/v1/voice-processing",
+      "method": "POST",
+      "parameters": {
+        "audio_data": {
+          "type": "string",
+          "required": true,
+          "description": "Base64 encoded audio data"
+        },
+        "action": {
+          "type": "string",
+          "required": false,
+          "default": "transcribe",
+          "options": ["transcribe", "analyze"],
+          "description": "The action to perform on the audio"
+        },
+        "language": {
+          "type": "string",
+          "required": false,
+          "default": "auto",
+          "description": "The language of the audio (auto-detect if not specified)"
+        }
+      },
+      "response": {
+        "type": "string",
+        "text": "string (for transcription)",
+        "analysis": "string (for analysis)",
+        "action_performed": "string",
+        "model_used": "string",
+        "timestamp": "string"
+      }
+    }
+  },
+  "deployment": {
+    "commands": {
+      "deploy_all": "supabase functions deploy",
+      "deploy_enhance": "supabase functions deploy enhance-prompt",
+      "deploy_rephrase": "supabase functions deploy rephrase-text",
+      "deploy_translate": "supabase functions deploy translate-text",
+      "deploy_voice": "supabase functions deploy voice-processing",
+      "serve_local": "supabase functions serve",
+      "test_function": "supabase functions test"
+    },
+    "environment_variables": [
+      "OPENAI_API_KEY",
+      "SUPABASE_URL",
+      "SUPABASE_ANON_KEY"
+    ]
+  }
+}

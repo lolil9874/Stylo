@@ -1,0 +1,16 @@
+{
+  "name": "stylo-supabase-functions",
+  "version": "1.0.0",
+  "description": "Supabase Edge Functions for Stylo - AI-powered text enhancement",
+  "scripts": {
+    "deploy": "supabase functions deploy",
+    "serve": "supabase functions serve",
+    "test": "supabase functions test"
+  },
+  "dependencies": {
+    "supabase": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/deno": "^1.0.0"
+  }
+}
