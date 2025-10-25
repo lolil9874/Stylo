@@ -28,6 +28,11 @@ class StyloApp {
       });
     });
 
+    // Système de détection de double-clic
+    let clickTimer = null;
+    let clickCount = 0;
+    let lastClickedButton = null;
+
     // Écouter les clics sur les boutons
     document.addEventListener('click', async (e) => {
       if (!e || !e.target) return;
@@ -35,10 +40,43 @@ class StyloApp {
       if (button) {
         const action = button.dataset.action;
 
-        console.log(`🎯 Button clicked: ${action}`);
+        // Si c'est le même bouton, incrémenter le compteur
+        if (lastClickedButton === button) {
+          clickCount++;
+        } else {
+          // Nouveau bouton, réinitialiser
+          clickCount = 1;
+          lastClickedButton = button;
+        }
 
-        // Juste ouvrir le panneau avec les filtres, ne pas exécuter l'action
-        this.showPanel(action);
+        console.log(`🎯 Button clicked: ${action} (click ${clickCount})`);
+
+        // Annuler le timer précédent
+        if (clickTimer) {
+          clearTimeout(clickTimer);
+        }
+
+        // Si double-clic détecté
+        if (clickCount === 2) {
+          console.log('🚀 Double-click detected - Executing action directly with default params');
+          clickCount = 0;
+          lastClickedButton = null;
+          this.executeAction(action);
+        } else {
+          // Simple clic - attendre pour voir si un deuxième clic arrive
+          clickTimer = setTimeout(() => {
+            console.log('📂 Single click - Opening filter panel');
+            const panel = document.getElementById('context-panel');
+            if (panel && panel.classList.contains('show') && this.currentAction === action) {
+              console.log('🔄 Same button clicked - toggling panel off');
+              this.hidePanel();
+            } else {
+              this.showPanel(action);
+            }
+            clickCount = 0;
+            lastClickedButton = null;
+          }, 300); // Délai de 300ms pour détecter le double-clic
+        }
       }
     });
   }
@@ -95,6 +133,35 @@ class StyloApp {
 
     // NOTE: attachFilterListeners() est maintenant appelé dans showPanel()
     // après que les filtres soient affichés
+  }
+
+  setupFastScroll(panel) {
+    if (!panel) return;
+    
+    // Retirer l'ancien listener s'il existe
+    if (this.wheelHandler) {
+      panel.removeEventListener('wheel', this.wheelHandler);
+    }
+    
+    // Créer un handler pour la molette qui scroll plus rapidement
+    this.wheelHandler = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Multiplier la vitesse de scroll par 5 pour un défilement très rapide
+      const scrollSpeed = 5;
+      const newScrollTop = panel.scrollTop + (e.deltaY * scrollSpeed);
+      
+      // Appliquer le scroll avec une animation fluide
+      panel.scrollTo({
+        top: newScrollTop,
+        behavior: 'auto' // Immédiat pour être plus réactif
+      });
+    };
+    
+    // Attacher le listener
+    panel.addEventListener('wheel', this.wheelHandler, { passive: false });
+    console.log('✅ Fast scroll enabled (5x speed)');
   }
 
   attachFilterListeners() {
@@ -200,6 +267,9 @@ class StyloApp {
     setTimeout(() => {
       this.attachFilterListeners();
     }, 50);
+    
+    // Améliorer le scroll avec la molette de la souris
+    this.setupFastScroll(panel);
     
     // Redimensionner la fenêtre pour afficher le panneau
     if (window.electronAPI && window.electronAPI.resizeWindow) {
@@ -436,7 +506,7 @@ class StyloApp {
 
       if (!copiedText || copiedText === 'STYLO_MARKER_EMPTY' || !copiedText.trim()) {
         await window.electronAPI.setClipboardText(oldClipboard);
-        throw new Error('Impossible de copier le texte. Assure-toi que ton curseur est dans un champ texte.');
+        throw new Error('Unable to copy text. Make sure your cursor is in a text field.');
       }
 
       // Nettoyer le texte
@@ -445,7 +515,7 @@ class StyloApp {
       // Vérifier si c'est du JSON/HTML (popup d'erreur copiée par erreur)
       if (copiedText.startsWith('{') || copiedText.startsWith('<') || copiedText.includes('Error Message') || copiedText.includes('Raw Response')) {
         await window.electronAPI.setClipboardText(oldClipboard);
-        throw new Error('Le contenu copié semble être une popup d\'erreur. Ferme la popup d\'erreur et réessaye.');
+        throw new Error('The copied content appears to be an error popup. Close the error popup and try again.');
       }
 
       // Étape 3: Traitement IA
@@ -461,12 +531,12 @@ class StyloApp {
         enhancedText = await this.callAI(copiedText, 'enhance-prompt');
       } catch (error) {
         await window.electronAPI.setClipboardText(oldClipboard);
-        throw new Error(`Erreur lors de l'appel à l'IA: ${error.message}`);
+        throw new Error(`Error calling AI: ${error.message}`);
       }
 
       if (!enhancedText) {
         await window.electronAPI.setClipboardText(oldClipboard);
-        throw new Error('L\'IA n\'a pas retourné de résultat.');
+        throw new Error('AI did not return a result.');
       }
 
       console.log('✨ Enhanced text received:', enhancedText.substring(0, 100) + '...');
@@ -638,7 +708,7 @@ class StyloApp {
 
       if (!copiedText || copiedText === 'STYLO_MARKER_EMPTY' || !copiedText.trim()) {
         await window.electronAPI.setClipboardText(oldClipboard);
-        throw new Error('Impossible de copier le texte. Assure-toi que ton curseur est dans un champ texte.');
+        throw new Error('Unable to copy text. Make sure your cursor is in a text field.');
       }
 
       copiedText = copiedText.trim();
@@ -656,12 +726,12 @@ class StyloApp {
         rephrasedText = await this.callAI(copiedText, 'rephrase-text');
       } catch (error) {
         await window.electronAPI.setClipboardText(oldClipboard);
-        throw new Error(`Erreur lors de l'appel à l'IA: ${error.message}`);
+        throw new Error(`Error calling AI: ${error.message}`);
       }
 
       if (!rephrasedText) {
         await window.electronAPI.setClipboardText(oldClipboard);
-        throw new Error('L\'IA n\'a pas retourné de résultat.');
+        throw new Error('AI did not return a result.');
       }
 
       console.log('✨ Rephrased text received:', rephrasedText.substring(0, 100) + '...');
@@ -755,7 +825,7 @@ class StyloApp {
       
       if (!copiedText || copiedText === 'STYLO_MARKER_EMPTY' || !copiedText.trim()) {
         await window.electronAPI.setClipboardText(oldClipboard);
-        throw new Error('Impossible de copier le texte. Assure-toi que ton curseur est dans un champ texte.');
+        throw new Error('Unable to copy text. Make sure your cursor is in a text field.');
       }
       
       copiedText = copiedText.trim();
@@ -773,12 +843,12 @@ class StyloApp {
         translatedText = await this.callAI(copiedText, 'translate-text');
       } catch (error) {
         await window.electronAPI.setClipboardText(oldClipboard);
-        throw new Error(`Erreur lors de l'appel à l'IA: ${error.message}`);
+        throw new Error(`Error calling AI: ${error.message}`);
       }
       
       if (!translatedText) {
         await window.electronAPI.setClipboardText(oldClipboard);
-        throw new Error('L\'IA n\'a pas retourné de résultat.');
+        throw new Error('AI did not return a result.');
       }
 
       console.log('✨ Translated text received:', translatedText.substring(0, 100) + '...');
@@ -811,20 +881,82 @@ class StyloApp {
   }
 
   async handleVoiceProcessing() {
-    console.log('Fonctionnalité vocale à venir');
+    console.log('Voice feature coming soon');
   }
 
     // ========== HELPER POUR CHOISIR LE PROVIDER ==========
     
-    // FONCTION UNIQUE pour tous les boutons - utilise le provider par défaut
+    // FONCTION UNIQUE pour tous les boutons - utilise le provider approprié
     async callAI(text, action) {
-      const provider = window.APP_CONFIG.providers.default;
+      // Choisir le provider selon l'action
+      let provider;
+      if (action === 'enhance-prompt') {
+        provider = window.APP_CONFIG.providers.promptEnhancement || window.APP_CONFIG.providers.default;
+      } else {
+        provider = window.APP_CONFIG.providers.default;
+      }
+      
       console.log(`🎯 Using provider: ${provider} for ${action}`);
       
-      if (provider === 'openrouter') {
+      // Router vers le bon provider
+      if (provider === 'huggingface') {
+        return await this.callHuggingFace(text, action);
+      } else if (provider === 'openrouter') {
         return await this.callSupabaseOpenRouter(text, action);
       } else {
         return await this.callSupabaseOpenAI(text, action);
+      }
+    }
+    
+    // ========== HUGGING FACE API ==========
+    async callHuggingFace(text, action) {
+      console.log('🤗 Calling Hugging Face API (Prompt++)...');
+      
+      // Vérifier la clé API
+      if (!window.HUGGINGFACE_CONFIG.apiKey || window.HUGGINGFACE_CONFIG.apiKey === 'YOUR_HUGGINGFACE_API_KEY_HERE') {
+        throw new Error('Hugging Face API key not configured. Please add your key in config.js');
+      }
+      
+      const modelUrl = `${window.HUGGINGFACE_CONFIG.apiUrl}/${window.HUGGINGFACE_CONFIG.models.promptPlusPlus}`;
+      
+      try {
+        const response = await fetch(modelUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${window.HUGGINGFACE_CONFIG.apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            inputs: text,
+            parameters: {
+              max_new_tokens: 512,
+              temperature: 0.7,
+              top_p: 0.95,
+              return_full_text: false
+            }
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('❌ Hugging Face API error:', errorData);
+          throw new Error(`Hugging Face API error: ${response.status} - ${errorData.error || 'Unknown error'}`);
+        }
+        
+        const data = await response.json();
+        console.log('✅ Hugging Face response:', data);
+        
+        // Le modèle retourne un array avec le texte généré
+        if (Array.isArray(data) && data.length > 0) {
+          return data[0].generated_text || data[0].text || text;
+        } else if (data.generated_text) {
+          return data.generated_text;
+        } else {
+          throw new Error('Unexpected response format from Hugging Face');
+        }
+      } catch (error) {
+        console.error('❌ Error calling Hugging Face:', error);
+        throw error;
       }
     }
     

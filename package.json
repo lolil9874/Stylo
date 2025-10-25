@@ -12,9 +12,23 @@
     "start": "ELECTRON_APP_NAME=Stylo electron .",
     "dev": "ELECTRON_APP_NAME=Stylo electron . --dev"
   },
-  "keywords": ["electron", "macos", "floating", "interface", "ai", "text-enhancement", "stylo"],
+  "keywords": [
+    "electron",
+    "macos",
+    "floating",
+    "interface",
+    "ai",
+    "text-enhancement",
+    "stylo"
+  ],
   "license": "MIT",
   "devDependencies": {
     "electron": "^27.0.0"
+  },
+  "dependencies": {
+    "@composio/core": "^0.2.0",
+    "@composio/openai-agents": "^0.2.0",
+    "@openai/agents": "^0.2.1",
+    "dotenv": "^17.2.3"
   }
 }
