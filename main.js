@@ -3,11 +3,19 @@ const path = require('path');
 const { exec } = require('child_process');
 const fs = require('fs');
 
+// Set the app name to "Stylo" - MUST be called before app.whenReady()
+app.setName('Stylo');
+
+// Also set the process title for macOS menu bar
+process.title = 'Stylo';
+
 let mainWindow;
 let onboardingWindow = null;
 let errorPopupWindow = null;
 let frontmostAppBundleId = null;
 let permissionConfig = null;
+let dragStart = null;
+let isDragging = false;
 
 function createWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
@@ -46,6 +54,19 @@ function createWindow() {
   if (process.argv.includes('--dev')) {
     mainWindow.webContents.openDevTools();
   }
+
+  // Handle window dragging
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.type === 'mouseDown' && input.button === 'left') {
+      if (input.x >= 0 && input.x <= 200 && input.y >= 0 && input.y <= 50) {
+        dragStart = { x: input.x, y: input.y };
+      }
+    }
+    
+    if (input.type === 'mouseUp') {
+      isDragging = false;
+    }
+  });
 }
 
 // MARK: - Menu Configuration
@@ -372,15 +393,4 @@ app.on('activate', () => {
   }
 });
 
-// Handle window dragging
-mainWindow?.webContents.on('before-input-event', (event, input) => {
-  if (input.type === 'mouseDown' && input.button === 'left') {
-    if (input.x >= 0 && input.x <= 200 && input.y >= 0 && input.y <= 50) {
-      dragStart = { x: input.x, y: input.y };
-    }
-  }
-  
-  if (input.type === 'mouseUp') {
-    isDragging = false;
-  }
-});
+// Handle window dragging - moved inside createWindow function
