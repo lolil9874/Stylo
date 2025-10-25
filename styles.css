@@ -7,9 +7,7 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: transparent;
     overflow: hidden;
     user-select: none;
     -webkit-user-select: none;
@@ -20,7 +18,7 @@ body {
     width: 100%;
     height: 100vh;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(15px);
@@ -71,6 +69,7 @@ body {
     -webkit-mask-composite: xor;
     padding: 0.5px;
     z-index: 1;
+    pointer-events: none !important;
 }
 
 /* Zone de déplacement */
@@ -520,3 +519,351 @@ body {
         padding: 20px;
     }
 }
+
+/* ============================================= */
+/* FILTER MODAL (Panneau contextuel)            */
+/* ============================================= */
+
+/* Modal principal - TRANSPARENT comme la toolbar */
+.filter-modal {
+    position: fixed;
+    top: 50px; /* Juste après la toolbar */
+    left: 0;
+    right: 0;
+    width: 200px;
+    margin: 0 auto;
+
+    /* Complètement transparent - pas de fond */
+    background: transparent;
+    border: none;
+    box-shadow: none;
+
+    /* Espacement minimaliste */
+    padding: 16px 0;
+
+    /* Animation d'apparition */
+    opacity: 0;
+    transform: translateY(-10px);
+    max-height: 0;
+    pointer-events: none;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 100;
+}
+
+.filter-modal.show {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 500px;
+    pointer-events: auto !important;
+    overflow-y: auto;
+}
+
+/* Forcer tous les éléments enfants cliquables à recevoir les événements */
+.filter-modal.show * {
+    pointer-events: auto !important;
+}
+
+/* S'assurer que les boutons de filtres sont bien cliquables */
+.filter-modal.show .filter-option {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+
+/* Pas de gradient border - reste minimaliste */
+.filter-modal .gradient-border {
+    display: none;
+}
+
+/* Contenu du modal */
+.filter-content {
+    position: relative;
+    z-index: 1000;
+    pointer-events: auto !important;
+}
+
+/* Header caché - pas besoin de titre ni bouton fermer */
+.filter-header {
+    display: none;
+}
+
+/* Body avec les filtres */
+.filter-body {
+    margin-bottom: 12px;
+    pointer-events: auto;
+}
+
+/* Groupes d'options */
+.options-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: auto;
+}
+
+/* Sections de filtres - espacement minimaliste */
+.filter-section {
+    margin-bottom: 16px;
+    pointer-events: auto;
+}
+
+.filter-section:last-child {
+    margin-bottom: 0;
+}
+
+/* Labels des sections - typographie discrète */
+.section-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: rgba(0, 0, 0, 0.3);
+    margin-bottom: 8px;
+    margin-top: 0;
+    text-align: center;
+}
+
+/* Options de filtres - layout minimaliste */
+.filter-options {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+    pointer-events: auto;
+}
+
+.filter-option {
+    /* Bouton minimaliste et discret */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    line-height: 1.3;
+    padding: 6px 10px;
+    min-height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    position: relative;
+    overflow: hidden;
+    /* Indiquer visuellement que c'est cliquable */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.filter-option:hover {
+    background: rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+}
+
+.filter-option:active {
+    transform: translateY(0) scale(0.96);
+    background: rgba(0, 0, 0, 0.10);
+    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* État sélectionné - plus visible */
+.filter-option.selected {
+    background: rgba(0, 0, 0, 0.12);
+    transform: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Cacher toutes les icônes par défaut */
+.filter-option-icon {
+    display: none;
+}
+
+/* Texte des filtres - typographie discrète */
+.filter-option span {
+    font-size: 10px;
+    font-weight: 400;
+    color: rgba(0, 0, 0, 0.45);
+    white-space: nowrap;
+    transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    /* IMPORTANT: Ne pas bloquer les événements sur le texte */
+    pointer-events: none !important;
+}
+
+.filter-option.selected span {
+    color: rgba(0, 0, 0, 0.85);
+    font-weight: 600;
+}
+
+.filter-option:hover span {
+    color: rgba(0, 0, 0, 0.70);
+}
+
+.filter-option:active span {
+    color: rgba(0, 0, 0, 0.80);
+}
+
+/* Drapeaux et emojis - taille harmonisée */
+.filter-option[data-filter="translate-target"] span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Style spécifique pour les emojis drapeaux */
+.filter-option span::first-letter {
+    font-size: 18px;
+    opacity: 0.6;
+    transition: opacity 0.25s ease;
+}
+
+.filter-option.selected span::first-letter {
+    opacity: 1;
+}
+
+/* Bouton d'action principal - minimaliste comme toolbar */
+.action-button-primary {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    margin: 8px auto 0;
+}
+
+.action-button-primary:hover {
+    background: rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+}
+
+.action-button-primary:active {
+    transform: translateY(0) scale(0.95);
+    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.action-button-primary:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.action-button-primary-icon {
+    width: 20px;
+    height: 20px;
+    opacity: 1;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.action-button-primary:hover .action-button-primary-icon {
+    transform: scale(1.1);
+}
+
+/* Cacher le texte du bouton lancer */
+.action-button-primary span {
+    display: none;
+}
+
+/* Zone de statut (montrée pendant l'exécution) */
+.panel-status {
+    margin-bottom: 12px;
+}
+
+.status-message {
+    font-size: 13px;
+    color: rgba(0, 0, 0, 0.7);
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+/* Barre de progression */
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+    position: relative;
+}
+
+.progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        transparent 100%
+    );
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Zone d'erreur */
+.panel-error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+.error-message {
+    font-size: 13px;
+    color: rgba(153, 27, 27, 0.9);
+    line-height: 1.5;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.retry-button {
+    width: 100%;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: white;
+    background: rgba(239, 68, 68, 0.9);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.retry-button:hover {
+    background: rgba(239, 68, 68, 1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.retry-button:active {
+    transform: scale(0.98);
+}
+
+/* Animations */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }

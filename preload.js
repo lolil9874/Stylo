@@ -1,5 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+console.log('✅ Preload script loaded');
+
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -73,7 +75,10 @@ onErrorData: (callback) => ipcRenderer.on('error-data', (event, data) => callbac
 onRetryEnhancement: (callback) => ipcRenderer.on('retry-enhancement', () => callback()),
 
 // Provider change listener
-onProviderChanged: (callback) => ipcRenderer.on('provider-changed', (event, data) => callback(data))
+onProviderChanged: (callback) => ipcRenderer.on('provider-changed', (event, data) => callback(data)),
+
+// Window resize functions
+resizeWindow: (width, height) => ipcRenderer.invoke('resize-window', width, height)
 });
 
 console.log('✅ Preload script loaded - electronAPI ready');

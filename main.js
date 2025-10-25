@@ -45,11 +45,11 @@ function createWindow() {
 
   // Keep the window above other applications - COMPLETELY NON-ACTIVATING
   mainWindow.setAlwaysOnTop(true, 'screen-saver');
-  
+
   // Disable automatic focus - NEVER can receive focus
   mainWindow.setFocusable(false);
   mainWindow.setIgnoreMouseEvents(false); // Allow clicks but don't activate
-  
+
   // Open DevTools in development mode
   if (process.argv.includes('--dev')) {
     mainWindow.webContents.openDevTools();
@@ -332,6 +332,16 @@ function setupIpcHandlers() {
       clipboard.writeText('No logs available');
     }
     return true;
+  });
+
+  // Window resize handler
+  ipcMain.handle('resize-window', async (event, width, height) => {
+    if (mainWindow) {
+      mainWindow.setSize(width, height);
+      console.log(`🖼️  Window resized to: ${width}x${height}`);
+      return true;
+    }
+    return false;
   });
 }
 
