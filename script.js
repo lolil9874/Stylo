@@ -147,11 +147,11 @@ class StyloApp {
 
       console.log(`📄 Text extracted: ${copiedText.substring(0, 100)}...`);
       
-      // 2. Call Supabase Edge Function (provider choisi dans config)
-      let enhancedText;
-      try {
-        enhancedText = await this.callEnhancePrompt(copiedText);
-      } catch (error) {
+        // 2. Call Supabase Edge Function (provider choisi dans config)
+        let enhancedText;
+        try {
+          enhancedText = await this.callAI(copiedText, 'enhance-prompt');
+        } catch (error) {
         await window.electronAPI.showErrorPopup({
           title: 'Erreur Supabase',
           errorCode: 'SUPABASE_ERROR',
@@ -349,7 +349,7 @@ class StyloApp {
       console.log('🤖 Step 3: Calling Supabase rephrase-text (provider choisi dans config)...');
       let rephrasedText;
       try {
-        rephrasedText = await this.callRephraseText(copiedText);
+        rephrasedText = await this.callAI(copiedText, 'rephrase-text');
       } catch (error) {
         await window.electronAPI.showErrorPopup({
           title: 'Erreur Supabase',
@@ -462,7 +462,7 @@ class StyloApp {
       console.log('🤖 Step 3: Calling Supabase translate-text (provider choisi dans config)...');
       let translatedText;
       try {
-        translatedText = await this.callTranslateText(copiedText);
+        translatedText = await this.callAI(copiedText, 'translate-text');
       } catch (error) {
         await window.electronAPI.showErrorPopup({
           title: 'Erreur Supabase',
@@ -520,41 +520,91 @@ class StyloApp {
     console.log('Fonctionnalité vocale à venir');
   }
 
-  // ========== HELPER POUR CHOISIR LE PROVIDER ==========
-  
-  // Fonction pour choisir automatiquement le provider selon la config
-  async callEnhancePrompt(text) {
-    const provider = window.APP_CONFIG.providers.enhancePrompt;
-    console.log(`🎯 Using provider: ${provider} for enhance-prompt`);
+    // ========== HELPER POUR CHOISIR LE PROVIDER ==========
     
-    if (provider === 'openrouter') {
-      return await this.callSupabaseEnhancePromptOpenRouter(text);
-    } else {
-      return await this.callSupabaseEnhancePrompt(text);
+    // FONCTION UNIQUE pour tous les boutons - utilise le provider par défaut
+    async callAI(text, action) {
+      const provider = window.APP_CONFIG.providers.default;
+      console.log(`🎯 Using provider: ${provider} for ${action}`);
+      
+      if (provider === 'openrouter') {
+        return await this.callSupabaseOpenRouter(text, action);
+      } else {
+        return await this.callSupabaseOpenAI(text, action);
+      }
     }
-  }
-  
-  async callRephraseText(text) {
-    const provider = window.APP_CONFIG.providers.rephraseText;
-    console.log(`🎯 Using provider: ${provider} for rephrase-text`);
     
-    if (provider === 'openrouter') {
-      return await this.callSupabaseRephraseTextOpenRouter(text);
-    } else {
-      return await this.callSupabaseRephraseText(text);
+    // Fonctions OpenRouter pour chaque action
+    async callSupabaseOpenRouter(text, action) {
+      let functionUrl;
+      switch(action) {
+        case 'enhance-prompt':
+          functionUrl = window.SUPABASE_CONFIG.functions.enhancePrompt;
+          break;
+        case 'rephrase-text':
+          functionUrl = window.SUPABASE_CONFIG.functions.rephraseText;
+          break;
+        case 'translate-text':
+          functionUrl = window.SUPABASE_CONFIG.functions.translateText;
+          break;
+        default:
+          throw new Error(`Unknown action: ${action}`);
+      }
+      
+      console.log(`🤖 Calling Supabase ${functionUrl} (OpenRouter Llama 3.3)...`);
+      
+      const response = await fetch(`${window.SUPABASE_CONFIG.url}${functionUrl}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${window.SUPABASE_CONFIG.anonKey}`
+        },
+        body: JSON.stringify({ text })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.enhanced_text || data.result || data.rephrased_text || data.translated_text;
     }
-  }
-  
-  async callTranslateText(text) {
-    const provider = window.APP_CONFIG.providers.translateText;
-    console.log(`🎯 Using provider: ${provider} for translate-text`);
     
-    if (provider === 'openrouter') {
-      return await this.callSupabaseTranslateTextOpenRouter(text);
-    } else {
-      return await this.callSupabaseTranslateTextOld(text);
+    // Fonctions OpenAI pour chaque action
+    async callSupabaseOpenAI(text, action) {
+      let functionUrl;
+      switch(action) {
+        case 'enhance-prompt':
+          functionUrl = window.SUPABASE_CONFIG.functions.enhancePromptOpenAI;
+          break;
+        case 'rephrase-text':
+          functionUrl = window.SUPABASE_CONFIG.functions.rephraseTextOpenAI;
+          break;
+        case 'translate-text':
+          functionUrl = window.SUPABASE_CONFIG.functions.translateTextOpenAI;
+          break;
+        default:
+          throw new Error(`Unknown action: ${action}`);
+      }
+      
+      console.log(`🤖 Calling Supabase ${functionUrl} (OpenAI GPT-4o-mini)...`);
+      
+      const response = await fetch(`${window.SUPABASE_CONFIG.url}${functionUrl}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${window.SUPABASE_CONFIG.anonKey}`
+        },
+        body: JSON.stringify({ text })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.enhanced_text || data.result || data.rephrased_text || data.translated_text;
     }
-  }
 
   // ========== FONCTIONS OPENROUTER (PAR DÉFAUT) ==========
   

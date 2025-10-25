@@ -35,12 +35,10 @@ const APP_CONFIG = {
   // Délai d'attente pour le collage (en ms)
   pasteDelay: 100,
   
-  // 🎯 CHOIX DU PROVIDER POUR CHAQUE BOUTON
+  // 🎯 CHOIX DU PROVIDER POUR TOUS LES BOUTONS
   // Options: 'openrouter' (Llama 3.3 - gratuit, rapide) ou 'openai' (GPT-4o-mini - payant, précis)
   providers: {
-    enhancePrompt: 'openai',  // ⭐ Star button - Améliorer le prompt
-    rephraseText: 'openrouter',   // ✍️ Pen button - Reformuler le texte
-    translateText: 'openrouter'   // 🌍 Translate button - Traduire en anglais
+    default: 'openai'  // ⭐✍️🌍 Tous les boutons utilisent le même provider
   }
 };
 

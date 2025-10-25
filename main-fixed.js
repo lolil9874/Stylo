@@ -55,13 +55,15 @@ function createMenu() {
   let config = fs.readFileSync(configPath, 'utf8');
   
   // Fonction pour extraire le provider actuel
-  const getProvider = () => {
-    const regex = /default:\s*'(\w+)'/;
+  const getProvider = (buttonName) => {
+    const regex = new RegExp(`${buttonName}:\\s*'(\\w+)'`);
     const match = config.match(regex);
     return match ? match[1] : 'openrouter';
   };
   
-  const currentProvider = getProvider();
+  const enhanceProvider = getProvider('enhancePrompt');
+  const rephraseProvider = getProvider('rephraseText');
+  const translateProvider = getProvider('translateText');
   
   const template = [
     {
@@ -80,19 +82,58 @@ function createMenu() {
       ]
     },
     {
-      label: 'Provider',
+      label: 'Providers',
       submenu: [
         {
-          label: `OpenRouter (Llama 3.3) ${currentProvider === 'openrouter' ? '✓' : ''}`,
-          type: 'radio',
-          checked: currentProvider === 'openrouter',
-          click: () => updateProvider('default', 'openrouter')
+          label: '⭐ Star Button (Enhance Prompt)',
+          submenu: [
+            {
+              label: `OpenRouter (Llama 3.3) ${enhanceProvider === 'openrouter' ? '✓' : ''}`,
+              type: 'radio',
+              checked: enhanceProvider === 'openrouter',
+              click: () => updateProvider('enhancePrompt', 'openrouter')
+            },
+            {
+              label: `OpenAI (GPT-4o-mini) ${enhanceProvider === 'openai' ? '✓' : ''}`,
+              type: 'radio',
+              checked: enhanceProvider === 'openai',
+              click: () => updateProvider('enhancePrompt', 'openai')
+            }
+          ]
         },
         {
-          label: `OpenAI (GPT-4o-mini) ${currentProvider === 'openai' ? '✓' : ''}`,
-          type: 'radio',
-          checked: currentProvider === 'openai',
-          click: () => updateProvider('default', 'openai')
+          label: '✍️ Pen Button (Rephrase Text)',
+          submenu: [
+            {
+              label: `OpenRouter (Llama 3.3) ${rephraseProvider === 'openrouter' ? '✓' : ''}`,
+              type: 'radio',
+              checked: rephraseProvider === 'openrouter',
+              click: () => updateProvider('rephraseText', 'openrouter')
+            },
+            {
+              label: `OpenAI (GPT-4o-mini) ${rephraseProvider === 'openai' ? '✓' : ''}`,
+              type: 'radio',
+              checked: rephraseProvider === 'openai',
+              click: () => updateProvider('rephraseText', 'openai')
+            }
+          ]
+        },
+        {
+          label: '🌍 Translate Button',
+          submenu: [
+            {
+              label: `OpenRouter (Llama 3.3) ${translateProvider === 'openrouter' ? '✓' : ''}`,
+              type: 'radio',
+              checked: translateProvider === 'openrouter',
+              click: () => updateProvider('translateText', 'openrouter')
+            },
+            {
+              label: `OpenAI (GPT-4o-mini) ${translateProvider === 'openai' ? '✓' : ''}`,
+              type: 'radio',
+              checked: translateProvider === 'openai',
+              click: () => updateProvider('translateText', 'openai')
+            }
+          ]
         }
       ]
     },
@@ -118,8 +159,8 @@ function updateProvider(buttonName, provider) {
   const configPath = path.join(__dirname, 'config.js');
   let config = fs.readFileSync(configPath, 'utf8');
   
-  // Remplacer le provider par défaut
-  const regex = new RegExp(`(default:\\s*)'\\w+'`, 'g');
+  // Remplacer le provider pour le bouton spécifié
+  const regex = new RegExp(`(${buttonName}:\\s*)'\\w+'`, 'g');
   config = config.replace(regex, `$1'${provider}'`);
   
   // Sauvegarder
