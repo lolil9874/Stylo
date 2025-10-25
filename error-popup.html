@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stylo - Error Debug</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f9fafb;
+            padding: 20px;
+        }
+
+        .error-container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .error-header {
+            background: #ef4444;
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .error-icon {
+            font-size: 32px;
+        }
+
+        .error-title {
+            flex: 1;
+        }
+
+        .error-title h1 {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .error-title p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .error-body {
+            padding: 24px;
+        }
+
+        .error-section {
+            margin-bottom: 20px;
+        }
+
+        .error-section h2 {
+            font-size: 16px;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .error-section p {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #4b5563;
+        }
+
+        .error-code {
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            color: #1f2937;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .error-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .error-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .error-button.primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .error-button.primary:hover {
+            background: #2563eb;
+        }
+
+        .error-button.secondary {
+            background: #e5e7eb;
+            color: #1f2937;
+        }
+
+        .error-button.secondary:hover {
+            background: #d1d5db;
+        }
+
+        .ax-info {
+            background: #f0f9ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 12px;
+        }
+
+        .ax-info-item {
+            display: flex;
+            margin-bottom: 6px;
+        }
+
+        .ax-info-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .ax-info-label {
+            font-weight: 600;
+            color: #1e40af;
+            min-width: 120px;
+        }
+
+        .ax-info-value {
+            color: #1e3a8a;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-header">
+            <div class="error-icon">⚠️</div>
+            <div class="error-title">
+                <h1 id="error-title">Error Title</h1>
+                <p id="error-code">ERROR_CODE</p>
+            </div>
+        </div>
+        
+        <div class="error-body">
+            <div class="error-section">
+                <h2>Error Message</h2>
+                <p id="error-message">Error message will appear here...</p>
+            </div>
+
+            <div class="error-section" id="ax-info-section" style="display: none;">
+                <h2>AX Debug Information</h2>
+                <div class="ax-info" id="ax-info-container"></div>
+            </div>
+
+            <div class="error-section">
+                <h2>Raw Response</h2>
+                <div class="error-code" id="error-raw"></div>
+            </div>
+
+            <div class="error-actions">
+                <button class="error-button primary" onclick="window.electronAPI.retryAction()">
+                    🔄 Retry
+                </button>
+                <button class="error-button secondary" onclick="window.electronAPI.openAccessibilitySettings()">
+                    ⚙️ Open Settings
+                </button>
+                <button class="error-button secondary" onclick="window.electronAPI.copyLogs()">
+                    📋 Copy Logs
+                </button>
+                <button class="error-button secondary" onclick="window.electronAPI.closeErrorPopup()">
+                    ✕ Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Receive error data from main process
+        window.electronAPI.onErrorData((errorData) => {
+            document.getElementById('error-title').textContent = errorData.title || 'Unknown Error';
+            document.getElementById('error-code').textContent = errorData.errorCode || 'UNKNOWN_ERROR';
+            document.getElementById('error-message').textContent = errorData.errorMessage || 'No error message provided.';
+            document.getElementById('error-raw').textContent = JSON.stringify(errorData.raw, null, 2);
+
+            // Display AX info if available
+            if (errorData.axInfo) {
+                const axInfoSection = document.getElementById('ax-info-section');
+                const axInfoContainer = document.getElementById('ax-info-container');
+                axInfoSection.style.display = 'block';
+
+                let html = '';
+                if (errorData.axInfo.role) {
+                    html += `<div class="ax-info-item"><span class="ax-info-label">Role:</span><span class="ax-info-value">${errorData.axInfo.role}</span></div>`;
+                }
+                if (errorData.axInfo.subrole) {
+                    html += `<div class="ax-info-item"><span class="ax-info-label">Subrole:</span><span class="ax-info-value">${errorData.axInfo.subrole}</span></div>`;
+                }
+                if (errorData.axInfo.appBundle) {
+                    html += `<div class="ax-info-item"><span class="ax-info-label">App Bundle:</span><span class="ax-info-value">${errorData.axInfo.appBundle}</span></div>`;
+                }
+                if (errorData.axInfo.windowTitle) {
+                    html += `<div class="ax-info-item"><span class="ax-info-label">Window Title:</span><span class="ax-info-value">${errorData.axInfo.windowTitle}</span></div>`;
+                }
+                if (errorData.axInfo.elementDescription) {
+                    html += `<div class="ax-info-item"><span class="ax-info-label">Description:</span><span class="ax-info-value">${errorData.axInfo.elementDescription}</span></div>`;
+                }
+
+                axInfoContainer.innerHTML = html;
+            }
+        });
+    </script>
+</body>
+</html>
+

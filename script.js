@@ -1,501 +1,607 @@
-// Button interaction management
-class FloatingInterface {
+class StyloApp {
     constructor() {
-        this.activeButton = null;
-        this.buttons = document.querySelectorAll('.action-button');
-        this.lastUsedInput = null; // Garde en mémoire la dernière input utilisée
+    this.isProcessing = false;
         this.init();
     }
 
     init() {
-        this.bindEvents();
-        this.setInitialState();
-        this.trackInputUsage(); // Surveille l'utilisation des inputs
-    }
+    console.log('🚀 Stylo App initializing...');
+    this.setupEventListeners();
+  }
 
-    bindEvents() {
-        this.buttons.forEach(button => {
-            button.addEventListener('click', (e) => this.handleButtonClick(e));
-            button.addEventListener('mouseenter', (e) => this.handleButtonHover(e, true));
-            button.addEventListener('mouseleave', (e) => this.handleButtonHover(e, false));
-        });
-    }
+  setupEventListeners() {
+    // IMPORTANT: Mémoriser l'app frontmost au survol du bouton (avant le clic)
+    document.addEventListener('mouseenter', async (e) => {
+      if (e.target.closest('.action-button')) {
+        try {
+          await window.electronAPI.rememberFrontmostApp();
+          console.log('📱 Frontmost app remembered on hover');
+        } catch (error) {
+          console.error('⚠️ Error remembering frontmost app:', error);
+        }
+      }
+    }, true);
 
-    setInitialState() {
-        // The first button (rephrasing) is active by default
-        this.activeButton = this.buttons[0];
-        this.updateButtonStates();
-    }
-
-    trackInputUsage() {
-        // Surveille tous les champs de texte de la page
-        const inputSelector = 'input[type="text"], input[type="search"], input[type="email"], input[type="url"], input[type="tel"], textarea, [contenteditable="true"]';
-        
-        // Ajoute les listeners sur tous les inputs existants
-        const addListeners = () => {
-            document.querySelectorAll(inputSelector).forEach(input => {
-                if (!input.hasAttribute('data-stylo-tracked')) {
-                    input.setAttribute('data-stylo-tracked', 'true');
-                    
-                    // Quand on clique ou focus sur un input
-                    input.addEventListener('focus', () => {
-                        this.lastUsedInput = input;
-                        console.log('📌 Input tracked:', input.tagName, input.id || input.className);
-                    });
-                    
-                    // Quand on tape dedans
-                    input.addEventListener('input', () => {
-                        this.lastUsedInput = input;
-                    });
-                }
-            });
-        };
-        
-        // Ajoute les listeners au chargement
-        addListeners();
-        
-        // Re-scan régulièrement pour les nouveaux inputs (SPAs)
-        setInterval(addListeners, 2000);
-        
-        // Observe les changements du DOM
-        const observer = new MutationObserver(addListeners);
-        observer.observe(document.body, { childList: true, subtree: true });
-    }
-
-    handleButtonClick(event) {
-        const button = event.currentTarget;
+    // Écouter les clics sur les boutons
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('.action-button')) {
+        const button = e.target.closest('.action-button');
         const action = button.dataset.action;
         
-        // Ajouter l'effet de clic
-        this.addClickEffect(button);
+        console.log(`🎯 Button clicked: ${action}`);
         
-        // Changer l'état actif
-        this.setActiveButton(button);
-        
-        // Simuler l'action
-        this.performAction(action);
-    }
-
-    handleButtonHover(event, isEntering) {
-        const button = event.currentTarget;
-        
-        if (isEntering) {
-            button.style.transform = 'translateY(-2px) scale(1.05)';
-        } else {
-            if (button === this.activeButton) {
-                button.style.transform = 'translateY(-2px) scale(1)';
-            } else {
-                button.style.transform = 'translateY(0) scale(1)';
-            }
-        }
-    }
-
-    addClickEffect(button) {
-        // Ajouter la classe pour l'effet de vague
-        button.classList.add('clicked');
-        
-        // Supprimer la classe après l'animation
-        setTimeout(() => {
-            button.classList.remove('clicked');
-        }, 600);
-    }
-
-    setActiveButton(button) {
-        // Retirer l'état actif de tous les boutons
-        this.buttons.forEach(btn => {
-            btn.classList.remove('active');
-            btn.style.transform = 'translateY(0) scale(1)';
-        });
-        
-        // Activer le bouton sélectionné
-        button.classList.add('active');
-        button.style.transform = 'translateY(-2px) scale(1)';
-        
-        this.activeButton = button;
-    }
-
-    updateButtonStates() {
-        this.buttons.forEach(button => {
-            if (button === this.activeButton) {
-                button.classList.add('active');
-                button.style.transform = 'translateY(-2px) scale(1)';
-            } else {
-                button.classList.remove('active');
-                button.style.transform = 'translateY(0) scale(1)';
-            }
-        });
-    }
-
-    performAction(action) {
-        console.log(`Action sélectionnée: ${action}`);
-        
-        // Simulation des différentes actions
         switch (action) {
-            case 'correction':
-                this.simulateTextCorrection();
-                break;
-            case 'reformulation':
-                this.simulateTextReformulation();
-                break;
-            case 'translation':
-                this.simulateTextTranslation();
-                break;
-            case 'improvement':
-                this.simulatePromptImprovement();
-                break;
-            case 'voice':
-                this.simulateVoiceInput();
-                break;
+          case 'improvement':
+            this.handlePromptEnhancement();
+            break;
+          case 'reformulation':
+            this.handleRephrase();
+            break;
+          case 'translation':
+            this.handleTranslate();
+            break;
+          case 'voice':
+            this.handleVoiceProcessing();
+            break;
         }
+      }
+    });
+  }
+
+  async handlePromptEnhancement() {
+    if (this.isProcessing) {
+      console.log('⏳ Already processing, ignoring click');
+      return;
     }
 
-    simulateTextReformulation() {
-        console.log('✏️ Text rephrasing in progress...');
-        this.showNotification('Text rephrasing activated');
-    }
+    this.isProcessing = true;
+    this.showLoading(true);
 
-    simulateTextTranslation() {
-        console.log('🌐 Text translation in progress...');
-        this.showNotification('Text translation activated');
-    }
-
-    simulatePromptImprovement() {
-        console.log('✨ Prompt improvement in progress...');
-        this.showNotification('Detecting text field...');
+    try {
+      console.log('✨ Starting prompt enhancement...');
+      
+      // WORKFLOW OPTIMISÉ :
+      // 1. Réactiver l'app frontmost (mémorisée au survol)
+      // 2. Cmd+A + Cmd+C pour copier le texte
+      // 3. Envoyer à Supabase/OpenAI
+      // 4. Cmd+A + Cmd+V pour remplacer
+      
+      console.log('🎯 Step 1: Reactivating frontmost app...');
+      await window.electronAPI.reactivateFrontmostApp();
+      await this.sleep(500); // Attendre que l'app reprenne vraiment le focus et que le curseur soit dans la textbox
+      
+      console.log('📋 Step 2: Copying text (Cmd+A + Cmd+C)...');
+      // Sauvegarder le clipboard original
+      const oldClipboard = await window.electronAPI.getClipboardText();
+      
+      // Vider le clipboard pour vérifier que le Cmd+C fonctionne
+      await window.electronAPI.setClipboardText('STYLO_MARKER_EMPTY');
+      await this.sleep(100);
+      
+      // Cmd+A + Cmd+C
+      await window.electronAPI.copySelectedText();
+      
+      // ATTENDRE QUE LE TEXTE SOIT VRAIMENT COPIÉ (max 3 secondes)
+      let copiedText = '';
+      let attempts = 0;
+      const maxAttempts = 15; // 15 x 200ms = 3 secondes max
+      
+      while (attempts < maxAttempts) {
+        await this.sleep(200);
+        copiedText = await window.electronAPI.getClipboardText();
         
-        // Améliorer le texte via détection automatique
-        this.enhancePromptAuto();
+        // Si le clipboard a changé et n'est plus vide
+        if (copiedText && copiedText !== 'STYLO_MARKER_EMPTY' && copiedText.trim()) {
+          console.log(`✅ Text copied after ${(attempts + 1) * 200}ms`);
+          break;
+        }
+        
+        attempts++;
+        console.log(`⏳ Waiting for text to be copied... (attempt ${attempts}/${maxAttempts})`);
+      }
+      
+      console.log('📄 Copied text:', copiedText?.substring(0, 100) + '...');
+      
+      // Vérifier que le texte a bien été copié
+      if (!copiedText || copiedText === 'STYLO_MARKER_EMPTY' || !copiedText.trim()) {
+        console.error('❌ Failed to copy text after', maxAttempts * 200, 'ms');
+        await window.electronAPI.showErrorPopup({
+          title: 'Échec de la copie',
+          errorCode: 'COPY_FAILED',
+          errorMessage: `Impossible de copier le texte après ${maxAttempts * 200}ms.\n\nAssure-toi que :\n1. Ton curseur est dans un champ texte\n2. Le champ contient du texte\n3. L'app a le focus\n\nPuis reclique ⭐`,
+          raw: { copiedText, attempts, oldClipboard }
+        });
+        // Restaurer le clipboard
+        await window.electronAPI.setClipboardText(oldClipboard);
+        return;
+      }
+      
+      // Nettoyer le texte
+      copiedText = copiedText.trim();
+      
+      // Vérifier si c'est du JSON/HTML (popup d'erreur copiée par erreur)
+      if (copiedText.startsWith('{') || copiedText.startsWith('<') || copiedText.includes('Error Message') || copiedText.includes('Raw Response')) {
+        console.warn('⚠️ Detected error popup content in clipboard, ignoring');
+        await window.electronAPI.showErrorPopup({
+          title: 'Contenu invalide',
+          errorCode: 'INVALID_CONTENT',
+          errorMessage: 'Le contenu copié semble être une popup d\'erreur. Ferme la popup d\'erreur, place ton curseur dans un champ texte, et reclique ⭐',
+          raw: { copiedText: copiedText.substring(0, 200) }
+        });
+        // Restaurer le clipboard
+        await window.electronAPI.setClipboardText(oldClipboard);
+        return;
+      }
+      
+      if (!copiedText || !copiedText.trim()) {
+        await window.electronAPI.showErrorPopup({
+          title: 'Aucun texte trouvé',
+          errorCode: 'EMPTY_TEXT',
+          errorMessage: 'Le champ de texte est vide ou aucun texte n\'a été sélectionné. Tapez du texte puis reclique ⭐',
+          raw: { copiedText }
+        });
+        // Restaurer le clipboard
+        await window.electronAPI.setClipboardText(oldClipboard);
+        return;
+      }
+
+      console.log(`📄 Text extracted: ${copiedText.substring(0, 100)}...`);
+      
+      // 2. Call Supabase Edge Function
+      let enhancedText;
+      try {
+        enhancedText = await this.callSupabaseEnhancePrompt(copiedText);
+      } catch (error) {
+        await window.electronAPI.showErrorPopup({
+          title: 'Erreur Supabase',
+          errorCode: 'SUPABASE_ERROR',
+          errorMessage: `Erreur lors de l'appel à Supabase: ${error.message}\n\nVérifie ta configuration dans config.js:\n- SUPABASE_CONFIG.url\n- SUPABASE_CONFIG.anonKey\n- La fonction Edge /enhance-prompt doit être déployée`,
+          raw: { text: copiedText, error: error.toString() }
+        });
+        // Restaurer le clipboard
+        await window.electronAPI.setClipboardText(oldClipboard);
+        return;
+      }
+      
+      if (!enhancedText) {
+        await window.electronAPI.showErrorPopup({
+          title: 'Erreur Supabase',
+          errorCode: 'SUPABASE_ERROR',
+          errorMessage: 'La fonction Supabase n\'a pas retourné de résultat. Vérifiez votre configuration.',
+          raw: { text: copiedText }
+        });
+        // Restaurer le clipboard
+        await window.electronAPI.setClipboardText(oldClipboard);
+        return;
+      }
+
+      console.log('✨ Step 4: Enhanced text received:', enhancedText.substring(0, 100) + '...');
+      
+      // Réactiver l'app frontmost une dernière fois avant de coller
+      console.log('🎯 Step 5: Reactivating app before paste...');
+      await window.electronAPI.reactivateFrontmostApp();
+      await this.sleep(200);
+      
+      // Mettre le texte amélioré dans le clipboard
+      console.log('📋 Step 6: Replacing text (Cmd+A + Cmd+V)...');
+      await window.electronAPI.setClipboardText(enhancedText);
+      await this.sleep(100);
+      
+      // Cmd+A + Cmd+V pour remplacer
+      await window.electronAPI.pasteText(enhancedText);
+      await this.sleep(300);
+      
+      // Restaurer le clipboard original
+      await window.electronAPI.setClipboardText(oldClipboard);
+      
+      console.log('✅ SUCCESS! Text replaced successfully');
+      
+    } catch (error) {
+      console.error('❌ Error in prompt enhancement:', error);
+      await window.electronAPI.showErrorPopup({
+        title: 'Erreur inattendue',
+        errorCode: 'UNEXPECTED_ERROR',
+        errorMessage: error.message || 'Une erreur inattendue s\'est produite',
+        raw: { error: error.toString() }
+      });
+    } finally {
+      this.isProcessing = false;
+      this.showLoading(false);
+    }
+  }
+
+  getErrorTitle(errorCode) {
+    const titles = {
+      'ACCESSIBILITY_DENIED': 'Permissions d\'accessibilité requises',
+      'NO_FOCUSED_ELEMENT': 'Aucun élément focusé',
+      'NOT_A_TEXT_ELEMENT': 'Élément non supporté',
+      'SECURE_FIELD': 'Champ sécurisé',
+      'AX_WRITE_DENIED': 'Écriture AX refusée',
+      'SUPABASE_ERROR': 'Erreur Supabase',
+      'UNEXPECTED_ERROR': 'Erreur inattendue'
+    };
+    return titles[errorCode] || 'Erreur';
+  }
+
+  async callSupabaseEnhancePrompt(text) {
+    try {
+      console.log('🤖 Calling Supabase enhance-prompt...');
+      
+      const url = `${window.SUPABASE_CONFIG.url}${window.SUPABASE_CONFIG.functions.enhancePrompt}`;
+      
+      // Créer un AbortController pour le timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), window.APP_CONFIG.networkTimeout);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${window.SUPABASE_CONFIG.anonKey}`
+        },
+        body: JSON.stringify({ text }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`HTTP error! status: ${response.status} - ${JSON.stringify(errorData)}`);
+      }
+
+      const data = await response.json();
+      // La fonction Supabase retourne "enhanced_text" pas "result"
+      return data.enhanced_text || data.result;
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.error('❌ Request timeout');
+        throw new Error('Timeout: La requête a pris trop de temps');
+      }
+      console.error('❌ Error calling Supabase:', error);
+      throw error;
+    }
+  }
+
+  showLoading(show, action = 'improvement') {
+    const button = document.querySelector(`[data-action="${action}"]`);
+    if (!button) return;
+    
+    // Map des icônes pour chaque action
+    const icons = {
+      'improvement': 'icone/star-06.svg',
+      'reformulation': 'icone/pen-tool-plus.svg',
+      'translation': 'icone/translate-01.svg',
+      'voice': 'icone/microphone-02.svg'
+    };
+    
+    if (show) {
+      button.classList.add('loading');
+      button.innerHTML = '<div class="spinner"></div>';
+    } else {
+      button.classList.remove('loading');
+      const iconPath = icons[action] || icons['improvement'];
+      button.innerHTML = `<img src="${iconPath}" class="button-icon" alt="${action}">`;
+    }
+  }
+
+  sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // REPHRASE: Reformuler et corriger le texte
+  async handleRephrase() {
+    if (this.isProcessing) {
+      console.log('⏳ Already processing, ignoring click');
+      return;
     }
 
-    async enhancePromptAuto() {
-        try {
-            console.log('🔍 Starting automatic prompt enhancement...');
-            this.showNotification('Detecting active text field...');
-            
-            // Détecter automatiquement le champ de texte actif
-            const fieldResult = await window.electronAPI.getActiveTextField();
-            
-            if (!fieldResult.success) {
-                console.error('❌ Failed to detect text field:', fieldResult.error);
-                this.showNotification('No text field detected - trying clipboard method...');
-                
-                // Fallback vers la méthode clipboard
-                console.log('🔄 Falling back to clipboard method...');
-                return this.enhancePromptViaClipboard();
-            }
-            
-            const { app, fieldName, text } = fieldResult;
-            console.log(`📱 Detected field in ${app}:`, fieldName);
-            console.log('📄 Field content:', text.substring(0, 100) + (text.length > 100 ? '...' : ''));
-            
-            if (!text || !text.trim()) {
-                console.warn('⚠️ Text field is empty');
-                this.showNotification('Text field is empty - type something first!');
+    this.isProcessing = true;
+    this.showLoading(true, 'reformulation');
+
+    try {
+      console.log('✍️ Starting text rephrasing...');
+      
+      // Même workflow que handlePromptEnhancement
+      console.log('🎯 Step 1: Reactivating frontmost app...');
+      await window.electronAPI.reactivateFrontmostApp();
+      await this.sleep(500);
+      
+      console.log('📋 Step 2: Copying text (Cmd+A + Cmd+C)...');
+      const oldClipboard = await window.electronAPI.getClipboardText();
+      await window.electronAPI.setClipboardText('STYLO_MARKER_EMPTY');
+      await this.sleep(100);
+      
+      await window.electronAPI.copySelectedText();
+      
+      let copiedText = '';
+      let attempts = 0;
+      const maxAttempts = 15;
+      
+      while (attempts < maxAttempts) {
+        await this.sleep(200);
+        copiedText = await window.electronAPI.getClipboardText();
+        
+        if (copiedText && copiedText !== 'STYLO_MARKER_EMPTY' && copiedText.trim()) {
+          console.log(`✅ Text copied after ${(attempts + 1) * 200}ms`);
+          break;
+        }
+        
+        attempts++;
+        console.log(`⏳ Waiting for text to be copied... (attempt ${attempts}/${maxAttempts})`);
+      }
+      
+      console.log('📄 Copied text:', copiedText?.substring(0, 100) + '...');
+      
+      if (!copiedText || copiedText === 'STYLO_MARKER_EMPTY' || !copiedText.trim()) {
+        await window.electronAPI.showErrorPopup({
+          title: 'Échec de la copie',
+          errorCode: 'COPY_FAILED',
+          errorMessage: 'Impossible de copier le texte. Place ton curseur dans un champ texte et reclique ✍️',
+          raw: { copiedText, attempts }
+        });
+        await window.electronAPI.setClipboardText(oldClipboard);
                 return;
             }
 
-            console.log('🚀 Enhancing text via API...');
-            this.showNotification('Enhancing with AI...');
-            
-            // Envoyer à la fonction Supabase
-            const enhancedText = await this.sendToSupabase(text);
-            
-            console.log('✅ Enhanced text received!');
-            console.log('📝 Length: ' + text.length + ' → ' + enhancedText.length + ' chars');
-            
-            if (enhancedText) {
-                // Remplacer directement le texte dans le champ
-                console.log('📋 Replacing text in field...');
-                this.showNotification('Replacing text...');
-                
-                const replaced = await window.electronAPI.replaceActiveTextField(enhancedText);
-                
-                if (replaced.success) {
-                    console.log('✅ Text replaced successfully!');
-                    this.showNotification('✨ Enhanced & replaced!');
-                } else {
-                    console.error('❌ Failed to replace text:', replaced.error);
-                    this.showNotification('Failed to replace - trying clipboard method...');
-                    
-                    // Fallback vers clipboard
-                    return this.enhancePromptViaClipboard();
-                }
+      copiedText = copiedText.trim();
+      
+      console.log('🤖 Step 3: Calling Supabase rephrase-text...');
+      let rephrasedText;
+      try {
+        rephrasedText = await this.callSupabaseRephraseText(copiedText);
+      } catch (error) {
+        await window.electronAPI.showErrorPopup({
+          title: 'Erreur Supabase',
+          errorCode: 'SUPABASE_ERROR',
+          errorMessage: `Erreur lors de l'appel à Supabase: ${error.message}`,
+          raw: { text: copiedText, error: error.toString() }
+        });
+        await window.electronAPI.setClipboardText(oldClipboard);
+                return;
             }
+
+      if (!rephrasedText) {
+        await window.electronAPI.showErrorPopup({
+          title: 'Erreur Supabase',
+          errorCode: 'SUPABASE_ERROR',
+          errorMessage: 'La fonction Supabase n\'a pas retourné de résultat.',
+          raw: { text: copiedText }
+        });
+        await window.electronAPI.setClipboardText(oldClipboard);
+        return;
+      }
+
+      console.log('✨ Step 4: Rephrased text received:', rephrasedText.substring(0, 100) + '...');
+      
+      console.log('🎯 Step 5: Reactivating app before paste...');
+      await window.electronAPI.reactivateFrontmostApp();
+      await this.sleep(200);
+      
+      console.log('📋 Step 6: Replacing text (Cmd+A + Cmd+V)...');
+      await window.electronAPI.setClipboardText(rephrasedText);
+      await this.sleep(100);
+      
+      await window.electronAPI.pasteText(rephrasedText);
+      await this.sleep(300);
+      
+      await window.electronAPI.setClipboardText(oldClipboard);
+      
+      console.log('✅ SUCCESS! Text rephrased successfully');
             
         } catch (error) {
-            console.error('❌ Error in auto enhancement:', error);
-            this.showNotification('Auto failed - trying clipboard method...');
-            
-            // Fallback vers clipboard
-            return this.enhancePromptViaClipboard();
-        }
+      console.error('❌ Error in text rephrasing:', error);
+      await window.electronAPI.showErrorPopup({
+        title: 'Erreur inattendue',
+        errorCode: 'UNEXPECTED_ERROR',
+        errorMessage: error.message || 'Une erreur inattendue s\'est produite',
+        raw: { error: error.toString() }
+      });
+    } finally {
+      this.isProcessing = false;
+      this.showLoading(false, 'reformulation');
+    }
+  }
+
+  // TRANSLATE: Traduire en anglais
+  async handleTranslate() {
+    if (this.isProcessing) {
+      console.log('⏳ Already processing, ignoring click');
+      return;
     }
 
-    async enhancePromptViaClipboard() {
-        try {
-            console.log('🔍 Starting prompt enhancement via clipboard...');
-            this.showNotification('Selecting & copying text...');
-            
-            // Attendre un peu pour que l'utilisateur ait le temps de sélectionner
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Copier le texte sélectionné (simule Cmd+C)
-            const result = await window.electronAPI.copySelectedText();
-            
-            if (!result.success) {
-                console.error('❌ Failed to copy selected text');
-                this.showNotification('Failed to copy - check permissions');
-                return;
-            }
-            
-            const originalText = result.text;
-            console.log('📄 Copied text:', originalText.substring(0, 100) + (originalText.length > 100 ? '...' : ''));
-            
-            if (!originalText || !originalText.trim()) {
-                console.warn('⚠️ No text selected');
-                this.showNotification('Please select some text first!');
-                return;
-            }
+    this.isProcessing = true;
+    this.showLoading(true, 'translation');
 
-            console.log('🚀 Enhancing text via API...');
-            this.showNotification('Enhancing with AI...');
-            
-            // Envoyer à la fonction Supabase
-            const enhancedText = await this.sendToSupabase(originalText);
-            
-            console.log('✅ Enhanced text received!');
-            console.log('📝 Length: ' + originalText.length + ' → ' + enhancedText.length + ' chars');
-            
-            if (enhancedText) {
-                // Coller le texte amélioré (Cmd+A puis Cmd+V)
-                console.log('📋 Selecting all & pasting enhanced text...');
-                this.showNotification('Replacing text...');
-                
-                const pasted = await window.electronAPI.pasteText(enhancedText);
-                
-                if (pasted) {
-                    console.log('✅ Text replaced successfully!');
-                    this.showNotification('✨ Enhanced & replaced!');
-                } else {
-                    console.error('❌ Failed to paste text');
-                    this.showNotification('Failed to paste - check permissions');
-                }
-            }
-            
-        } catch (error) {
-            console.error('❌ Error enhancing prompt:', error);
-            this.showNotification('Error: ' + error.message);
+    try {
+      console.log('🌍 Starting translation...');
+      
+      console.log('🎯 Step 1: Reactivating frontmost app...');
+      await window.electronAPI.reactivateFrontmostApp();
+      await this.sleep(500);
+      
+      console.log('📋 Step 2: Copying text (Cmd+A + Cmd+C)...');
+      const oldClipboard = await window.electronAPI.getClipboardText();
+      await window.electronAPI.setClipboardText('STYLO_MARKER_EMPTY');
+      await this.sleep(100);
+      
+      await window.electronAPI.copySelectedText();
+      
+      let copiedText = '';
+      let attempts = 0;
+      const maxAttempts = 15;
+      
+      while (attempts < maxAttempts) {
+        await this.sleep(200);
+        copiedText = await window.electronAPI.getClipboardText();
+        
+        if (copiedText && copiedText !== 'STYLO_MARKER_EMPTY' && copiedText.trim()) {
+          console.log(`✅ Text copied after ${(attempts + 1) * 200}ms`);
+          break;
         }
+        
+        attempts++;
+        console.log(`⏳ Waiting for text to be copied... (attempt ${attempts}/${maxAttempts})`);
+      }
+      
+      console.log('📄 Copied text:', copiedText?.substring(0, 100) + '...');
+      
+      if (!copiedText || copiedText === 'STYLO_MARKER_EMPTY' || !copiedText.trim()) {
+        await window.electronAPI.showErrorPopup({
+          title: 'Échec de la copie',
+          errorCode: 'COPY_FAILED',
+          errorMessage: 'Impossible de copier le texte. Place ton curseur dans un champ texte et reclique 🌍',
+          raw: { copiedText, attempts }
+        });
+        await window.electronAPI.setClipboardText(oldClipboard);
+        return;
+      }
+      
+      copiedText = copiedText.trim();
+      
+      console.log('🤖 Step 3: Calling Supabase translate-text...');
+      let translatedText;
+      try {
+        translatedText = await this.callSupabaseTranslateText(copiedText);
+      } catch (error) {
+        await window.electronAPI.showErrorPopup({
+          title: 'Erreur Supabase',
+          errorCode: 'SUPABASE_ERROR',
+          errorMessage: `Erreur lors de l'appel à Supabase: ${error.message}`,
+          raw: { text: copiedText, error: error.toString() }
+        });
+        await window.electronAPI.setClipboardText(oldClipboard);
+        return;
+      }
+      
+      if (!translatedText) {
+        await window.electronAPI.showErrorPopup({
+          title: 'Erreur Supabase',
+          errorCode: 'SUPABASE_ERROR',
+          errorMessage: 'La fonction Supabase n\'a pas retourné de résultat.',
+          raw: { text: copiedText }
+        });
+        await window.electronAPI.setClipboardText(oldClipboard);
+        return;
+      }
+
+      console.log('✨ Step 4: Translated text received:', translatedText.substring(0, 100) + '...');
+      
+      console.log('🎯 Step 5: Reactivating app before paste...');
+      await window.electronAPI.reactivateFrontmostApp();
+      await this.sleep(200);
+      
+      console.log('📋 Step 6: Replacing text (Cmd+A + Cmd+V)...');
+      await window.electronAPI.setClipboardText(translatedText);
+      await this.sleep(100);
+      
+      await window.electronAPI.pasteText(translatedText);
+      await this.sleep(300);
+      
+      await window.electronAPI.setClipboardText(oldClipboard);
+      
+      console.log('✅ SUCCESS! Text translated successfully');
+      
+    } catch (error) {
+      console.error('❌ Error in translation:', error);
+      await window.electronAPI.showErrorPopup({
+        title: 'Erreur inattendue',
+        errorCode: 'UNEXPECTED_ERROR',
+        errorMessage: error.message || 'Une erreur inattendue s\'est produite',
+        raw: { error: error.toString() }
+      });
+    } finally {
+      this.isProcessing = false;
+      this.showLoading(false, 'translation');
     }
+  }
 
-    detectActiveTextInput() {
-        console.log('🔎 Detecting active text input...');
-        
-        // PRIORITÉ 1: Le dernier input utilisé (tracked)
-        if (this.lastUsedInput) {
-            const value = this.lastUsedInput.value || this.lastUsedInput.textContent || '';
-            if (value.trim()) {
-                console.log('✅ Using last used input:', this.lastUsedInput.tagName, this.lastUsedInput.id || this.lastUsedInput.className);
-                console.log('📝 Content:', value.substring(0, 100) + (value.length > 100 ? '...' : ''));
-                return this.lastUsedInput;
-            } else {
-                console.log('⚠️ Last used input is empty');
-            }
-        }
-        
-        // PRIORITÉ 2: L'élément actuellement focusé
-        let activeElement = document.activeElement;
-        if (activeElement && this.isTextInput(activeElement)) {
-            const value = activeElement.value || activeElement.textContent || '';
-            if (value.trim()) {
-                console.log('✅ Using focused element:', activeElement.tagName, activeElement.id || activeElement.className);
-                return activeElement;
-            }
-        }
-        
-        // PRIORITÉ 3: Chercher n'importe quel input avec du contenu
-        const textInputs = document.querySelectorAll('input[type="text"], input[type="search"], input[type="email"], input[type="url"], input[type="tel"], textarea, [contenteditable="true"]');
-        console.log(`🔍 Searching ${textInputs.length} text inputs for content...`);
-        
-        for (let input of textInputs) {
-            const value = input.value || input.textContent || '';
-            if (value.trim()) {
-                console.log(`✅ Found input with content: ${input.tagName} (${input.id || input.className})`);
-                return input;
-            }
-        }
-        
-        console.warn('❌ No text input found with content');
-        return null;
-    }
+  async handleVoiceProcessing() {
+    console.log('Fonctionnalité vocale à venir');
+  }
 
-    isTextInput(element) {
-        const tagName = element.tagName.toLowerCase();
-        const inputTypes = ['text', 'search', 'email', 'url', 'tel'];
-        const contentEditable = element.getAttribute('contenteditable') === 'true';
-        
-        if (tagName === 'textarea') {
-            return true;
-        }
-        
-        if (tagName === 'input') {
-            const type = element.type || 'text';
-            return inputTypes.includes(type);
-        }
-        
-        return contentEditable;
-    }
-
-    async sendToSupabase(text) {
-        // Configuration Supabase
-        const supabaseUrl = 'https://vkyfdunlbpzwxryqoype.supabase.co';
-        const functionName = 'enhance-prompt';
-        const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZreWZkdW5sYnB6d3hyeXFveXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEzNTQ3OTUsImV4cCI6MjA3NjkzMDc5NX0.Qnduuj9IwhWtrOueYmBJP5nOCUS_XimrBZuvNcfT530';
-        
-        const url = `${supabaseUrl}/functions/v1/${functionName}`;
-        
-        try {
-            console.log('📡 Connecting to Supabase function:', url);
-            console.log('📝 Sending text:', text.substring(0, 100) + (text.length > 100 ? '...' : ''));
-            
-            this.showNotification('Connecting to API...');
-            
-            const response = await fetch(url, {
+  // Fonction pour appeler Supabase rephrase-text
+  async callSupabaseRephraseText(text) {
+    try {
+      console.log('🤖 Calling Supabase rephrase-text...');
+      
+      const url = `${window.SUPABASE_CONFIG.url}${window.SUPABASE_CONFIG.functions.rephraseText}`;
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), window.APP_CONFIG.networkTimeout);
+      
+      const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${anonKey}`
+          'Authorization': `Bearer ${window.SUPABASE_CONFIG.anonKey}`
                 },
-                body: JSON.stringify({
-                    text: text
-                })
+        body: JSON.stringify({ text }),
+        signal: controller.signal
             });
 
-            console.log('📬 Response status:', response.status);
+      clearTimeout(timeoutId);
 
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('❌ API error response:', errorText);
-                let errorData;
-                try {
-                    errorData = JSON.parse(errorText);
-                } catch (e) {
-                    errorData = { error: errorText };
-                }
-                throw new Error(`API error: ${response.status} - ${errorData.error || errorData.details || 'Unknown error'}`);
+                const errorData = await response.json();
+        throw new Error(`HTTP error! status: ${response.status} - ${JSON.stringify(errorData)}`);
             }
 
             const data = await response.json();
-            console.log('📦 Response data:', data);
-            
-            if (!data.enhanced_text) {
-                throw new Error('No enhanced text received from API');
-            }
-            
-            return data.enhanced_text;
-            
-        } catch (error) {
-            console.error('❌ Supabase function error:', error);
-            this.showNotification('API connection failed');
+      return data.rephrased_text || data.result;
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.error('❌ Request timeout');
+        throw new Error('Timeout: La requête a pris trop de temps');
+      }
+      console.error('❌ Error calling Supabase:', error);
             throw error;
         }
     }
 
-    replaceTextInInput(element, newText) {
-        if (element.tagName.toLowerCase() === 'textarea' || element.tagName.toLowerCase() === 'input') {
-            element.value = newText;
-            
-            // Déclencher les événements de changement
-            element.dispatchEvent(new Event('input', { bubbles: true }));
-            element.dispatchEvent(new Event('change', { bubbles: true }));
-        } else if (element.getAttribute('contenteditable') === 'true') {
-            element.textContent = newText;
-            element.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-    }
+  // Fonction pour appeler Supabase translate-text
+  async callSupabaseTranslateText(text) {
+    try {
+      console.log('🤖 Calling Supabase translate-text...');
+      
+      const url = `${window.SUPABASE_CONFIG.url}${window.SUPABASE_CONFIG.functions.translateText}`;
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), window.APP_CONFIG.networkTimeout);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${window.SUPABASE_CONFIG.anonKey}`
+        },
+        body: JSON.stringify({ text }),
+        signal: controller.signal
+      });
 
-    simulateVoiceInput() {
-        console.log('🎤 Voice mode activated...');
-        this.showNotification('Voice mode activated - Speak now');
-        
-        // Special animation for voice button
-        this.animateVoiceButton();
-    }
+      clearTimeout(timeoutId);
 
-    animateVoiceButton() {
-        const voiceButton = document.querySelector('.voice-button');
-        voiceButton.style.animation = 'subtlePulse 1s infinite';
-        
-        setTimeout(() => {
-            voiceButton.style.animation = '';
-        }, 5000);
-    }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`HTTP error! status: ${response.status} - ${JSON.stringify(errorData)}`);
+      }
 
-    showNotification(message) {
-        // Create a notification that appears on top of the floating box
-        const floatingPanel = document.querySelector('.floating-panel');
-        const notification = document.createElement('div');
-        notification.textContent = message;
-        notification.style.cssText = `
-            position: absolute;
-            top: -25px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 9px;
-            font-weight: 500;
-            z-index: 1000;
-            opacity: 0;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            white-space: nowrap;
-            pointer-events: none;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        `;
-        
-        floatingPanel.appendChild(notification);
-        
-        // Appearance animation
-        setTimeout(() => {
-            notification.style.opacity = '1';
-        }, 100);
-        
-        // Remove after 2 seconds
-        setTimeout(() => {
-            notification.style.opacity = '0';
-            setTimeout(() => {
-                if (floatingPanel.contains(notification)) {
-                    floatingPanel.removeChild(notification);
-                }
-            }, 300);
-        }, 2000);
+      const data = await response.json();
+      return data.translated_text || data.result;
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.error('❌ Request timeout');
+        throw new Error('Timeout: La requête a pris trop de temps');
+      }
+      console.error('❌ Error calling Supabase:', error);
+      throw error;
     }
+  }
 }
 
-// Initialize the interface when DOM is loaded
+// Initialiser l'app quand le DOM est chargé
 document.addEventListener('DOMContentLoaded', () => {
-    new FloatingInterface();
+  new StyloApp();
 });
 
-// Keyboard shortcuts management (optional)
-document.addEventListener('keydown', (event) => {
-    // Shortcuts to test buttons
-    switch (event.key) {
-        case '1':
-            document.querySelector('[data-action="reformulation"]').click();
-            break;
-        case '2':
-            document.querySelector('[data-action="translation"]').click();
-            break;
-        case '3':
-            document.querySelector('[data-action="improvement"]').click();
-            break;
-        case '4':
-            event.preventDefault();
-            document.querySelector('[data-action="voice"]').click();
-            break;
-    }
-});
+console.log('✅ Script.js loaded');
