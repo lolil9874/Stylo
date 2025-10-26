@@ -289,9 +289,8 @@ class StyloApp {
           clearTimeout(hoverTimer);
           hoverTimer = null;
         }
-        // Réactiver l'ouverture par hover après sortie
-        suppressHover = false;
-        clickCooldownUntil = 0;
+        // Ne PAS réactiver suppressHover ni clickCooldownUntil ici
+        // Ils restent actifs jusqu'à ce que la souris sorte complètement de Stylo
       });
 
       // Clic sur un bouton
@@ -327,6 +326,11 @@ class StyloApp {
       // Sortie de la zone Stylo
       area.addEventListener('mouseleave', () => {
         console.log('🖱️ Mouse left Stylo area');
+        
+        // Réinitialiser les flags de suppression quand on sort complètement de Stylo
+        suppressHover = false;
+        clickCooldownUntil = 0;
+        
         // Programmer la fermeture quasi-instantanée
         scheduleClose();
       });
@@ -792,6 +796,12 @@ class StyloApp {
         target: getActiveFilterValue('translate-target', 'en'),
         style: getActiveFilterValue('translate-style', 'standard'),
         context: getActiveFilterValue('translate-context', 'general')
+      };
+    } else if (action === 'voice') {
+      return {
+        language: getActiveFilterValue('voice-language', 'en'),
+        quality: getActiveFilterValue('voice-quality', 'standard'),
+        speed: getActiveFilterValue('voice-speed', 'normal')
       };
     }
     return {};
@@ -1482,8 +1492,12 @@ class StyloApp {
       // Show loading state like other buttons
       this.showLoading(true, 'voice');
       
-      // Enhance the prompt
-      const enhancedText = await this.enhancePrompt(text);
+      // Get voice options from menu
+      const options = this.getOptions('voice');
+      this.debugLog('🎯 Voice options:', options);
+      
+      // Enhance the prompt with voice options
+      const enhancedText = await this.enhancePrompt(text, options);
       
       this.debugLog(`✨ Enhanced text: ${enhancedText}`);
       
@@ -1705,12 +1719,12 @@ class StyloApp {
   }
 
 
-  async enhancePrompt(text) {
+  async enhancePrompt(text, options = {}) {
     try {
-      console.log('🤖 Enhancing prompt...');
+      console.log('🤖 Enhancing prompt with options:', options);
       
-      // Use the same callAI system as other buttons
-      const enhancedText = await this.callAI(text, 'enhance-prompt');
+      // Use the same callAI system as other buttons with options
+      const enhancedText = await this.callAI(text, 'enhance-prompt', options);
       
       console.log('✅ Prompt enhanced successfully');
       return enhancedText;

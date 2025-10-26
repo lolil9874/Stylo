@@ -98,10 +98,10 @@ const APP_CONFIG = {
   //   - 'huggingface' (Prompt++ - gratuit, spécialisé prompts)
   providers: {
     // Provider pour chaque action individuellement
-    rephrase: 'openrouter',   // Provider pour Rephrase (reformulation) - OpenRouter par défaut
-    translate: 'letta',       // Provider pour Translate (traduction) - LettA par défaut
+    rephrase: 'openai',   // Provider pour Rephrase (reformulation) - OpenRouter par défaut
+    translate: 'openrouter',       // Provider pour Translate (traduction) - LettA par défaut
     enhance: 'letta',         // Provider pour Enhance (amélioration de prompt) - LettA par défaut
-    voice: 'openai',          // Provider pour Voice (traitement vocal) - OpenAI par défaut
+    voice: 'letta',          // Provider pour Voice (traitement vocal) - OpenAI par défaut
     default: 'letta'          // Provider par défaut si non spécifié
   }
 };
