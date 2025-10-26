@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Buttons</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .button {
+            padding: 10px 20px;
+            margin: 10px;
+            background: #333;
+            border: 1px solid #555;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .button:hover {
+            background: #444;
+        }
+        #log {
+            margin-top: 20px;
+            padding: 10px;
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Test Stylo Buttons</h1>
+    <p>Click buttons to test if event listeners work:</p>
+    
+    <button class="button action-button" data-action="reformulation">
+        ✍️ Reformulation
+    </button>
+    
+    <button class="button action-button" data-action="translation">
+        🌍 Translation
+    </button>
+    
+    <button class="button action-button" data-action="improvement">
+        ⭐ Improvement
+    </button>
+    
+    <button class="button action-button" data-action="voice">
+        🎤 Voice
+    </button>
+    
+    <button class="button" id="launch-button">
+        🚀 Launch
+    </button>
+    
+    <div id="log"></div>
+    
+    <script>
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            const timestamp = new Date().toLocaleTimeString();
+            const emoji = type === 'error' ? '❌' : type === 'success' ? '✅' : '📝';
+            entry.textContent = `[${timestamp}] ${emoji} ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        log('🚀 Test page loaded');
+        
+        // Test 1: Direct button listeners
+        document.querySelectorAll('.action-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const action = e.target.closest('.action-button').dataset.action;
+                log(`Button clicked directly: ${action}`, 'success');
+            });
+        });
+        
+        // Test 2: Document-level listener (like in Stylo)
+        let clickTimer = null;
+        let clickCount = 0;
+        let lastClickedButton = null;
+        
+        document.addEventListener('click', async (e) => {
+            if (!e || !e.target) return;
+            const button = e.target.closest('.action-button');
+            if (button) {
+                const action = button.dataset.action;
+                
+                if (lastClickedButton === button) {
+                    clickCount++;
+                } else {
+                    clickCount = 1;
+                    lastClickedButton = button;
+                }
+                
+                log(`Document listener: ${action} (click ${clickCount})`);
+                
+                if (clickTimer) {
+                    clearTimeout(clickTimer);
+                }
+                
+                if (clickCount === 2) {
+                    log(`Double-click detected for ${action}`, 'success');
+                    clickCount = 0;
+                    lastClickedButton = null;
+                } else {
+                    clickTimer = setTimeout(() => {
+                        log(`Single click confirmed for ${action}`, 'success');
+                        clickCount = 0;
+                        lastClickedButton = null;
+                    }, 300);
+                }
+            }
+        });
+        
+        // Test 3: Launch button
+        const launchBtn = document.getElementById('launch-button');
+        if (launchBtn) {
+            launchBtn.addEventListener('click', () => {
+                log('Launch button clicked!', 'success');
+            });
+            log('Launch button listener attached', 'success');
+        } else {
+            log('Launch button NOT found!', 'error');
+        }
+        
+        log('All listeners attached', 'success');
+    </script>
+</body>
+</html>
+

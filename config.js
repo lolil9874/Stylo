@@ -51,6 +51,15 @@ const DEEPGRAM_CONFIG = {
   keywordBoost: 'off'       // Pas de boost de mots-clés
 };
 
+// Configuration Hugging Face
+const HUGGINGFACE_CONFIG = {
+  apiKey: 'YOUR_HUGGINGFACE_API_KEY_HERE',
+  apiUrl: 'https://api-inference.huggingface.co/models',
+  models: {
+    promptPlusPlus: 'MaggieKat/Prompt_Plus_Plus'
+  }
+};
+
 // Configuration de l'app
 const APP_CONFIG = {
   // Timeout pour les requêtes réseau (en ms) - AUGMENTÉ pour sessions longues
@@ -83,13 +92,13 @@ const APP_CONFIG = {
   //   - 'huggingface' (Prompt++ - gratuit, spécialisé prompts) ⭐ NOUVEAU
   providers: {
     default: 'openai',  // ✍️🌍 Rephrasing et Translation
-    promptEnhancement: 'huggingface'  // ⭐ Enhancement utilise Hugging Face Prompt++
+    promptEnhancement: 'openai'  // ⭐ Enhancement utilise OpenAI par défaut
   }
 };
 
 // Exporter la configuration
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { SUPABASE_CONFIG, APP_CONFIG, DEEPGRAM_CONFIG };
+  module.exports = { SUPABASE_CONFIG, HUGGINGFACE_CONFIG, APP_CONFIG, DEEPGRAM_CONFIG };
 } else {
   window.SUPABASE_CONFIG = SUPABASE_CONFIG;
   window.HUGGINGFACE_CONFIG = HUGGINGFACE_CONFIG;

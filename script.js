@@ -107,6 +107,7 @@ class StyloApp {
     this.panel = document.querySelector('.floating-panel');
     // Position handled by Electron window; no front-end positioning
     this.setupEventListeners();
+    this.setupPanelListeners(); // 🔧 FIX: Appeler setupPanelListeners pour activer le bouton Launch
     this.setupDebugListeners();
     // Drag handled natively by Electron; no front-end drag listeners
   }
@@ -209,73 +210,57 @@ class StyloApp {
         }
       }
     });
-
-    // Test: Add a simple click listener directly to voice button
-    const voiceButton = document.querySelector('[data-action="voice"]');
-    if (voiceButton) {
-      voiceButton.addEventListener('click', (e) => {
-        console.log('🎤 Direct voice button click detected!');
-        e.preventDefault();
-        e.stopPropagation();
-        this.handleVoiceProcessing();
-      });
-    } else {
-      console.error('❌ Voice button not found!');
-    }
   }
 
   // Exécuter l'action après que l'utilisateur a configuré les filtres
   executeAction(action) {
+    console.log('🎯 executeAction() called with action:', action);
+    console.log('🎯 isProcessing:', this.isProcessing);
+    
     switch (action) {
       case 'improvement':
+        console.log('🎯 Calling handlePromptEnhancement()...');
         this.handlePromptEnhancement();
         break;
       case 'reformulation':
+        console.log('🎯 Calling handleRephrase()...');
         this.handleRephrase();
         break;
       case 'translation':
+        console.log('🎯 Calling handleTranslate()...');
         this.handleTranslate();
         break;
       case 'voice':
+        console.log('🎯 Calling handleVoiceProcessing()...');
         this.handleVoiceProcessing();
         break;
+      default:
+        console.error('❌ Unknown action:', action);
     }
   }
 
   // === GESTION DU PANNEAU CONTEXTUEL ===
 
   setupPanelListeners() {
+    console.log('🔧 Setting up panel listeners...');
+    
     // Bouton de fermeture
     const closeBtn = document.getElementById('panel-close');
     if (closeBtn) {
+      console.log('✅ Close button found, attaching listener');
       closeBtn.addEventListener('click', () => {
+        console.log('❌ Close button clicked');
         this.hidePanel();
       });
+    } else {
+      console.log('⚠️  Close button not found (header hidden)');
     }
 
-    // Bouton réessayer
-    const retryBtn = document.getElementById('retry-button');
-    if (retryBtn) {
-      retryBtn.addEventListener('click', () => {
-        if (this.currentAction) {
-          this.retryAction(this.currentAction);
-        }
-      });
-    }
-
-    // Bouton lancer
-    const launchBtn = document.getElementById('launch-button');
-    if (launchBtn) {
-      launchBtn.addEventListener('click', () => {
-        if (this.currentAction) {
-          console.log('🚀 Launching action:', this.currentAction);
-          this.executeAction(this.currentAction);
-        }
-      });
-    }
-
+    console.log('✅ Panel listeners setup complete');
+    
     // NOTE: attachFilterListeners() est maintenant appelé dans showPanel()
     // après que les filtres soient affichés
+    // L'action se lance via DOUBLE-CLIC sur le bouton d'action principal
   }
 
   setupFastScroll(panel) {
@@ -286,25 +271,59 @@ class StyloApp {
       panel.removeEventListener('wheel', this.wheelHandler);
     }
     
-    // Créer un handler pour la molette qui scroll plus rapidement
+    // Variables pour le momentum scrolling naturel
+    let scrollVelocity = 0;
+    let lastTime = Date.now();
+    let animationFrame = null;
+    
+    // Fonction de momentum doux (comme sur mobile)
+    const applyMomentum = () => {
+      if (Math.abs(scrollVelocity) > 0.1) {
+        panel.scrollTop += scrollVelocity;
+        scrollVelocity *= 0.85; // Friction plus forte = ralentissement plus rapide
+        animationFrame = requestAnimationFrame(applyMomentum);
+      } else {
+        scrollVelocity = 0;
+        if (animationFrame) {
+          cancelAnimationFrame(animationFrame);
+          animationFrame = null;
+        }
+      }
+    };
+    
+    // 📱 Handler naturel style mobile
     this.wheelHandler = (e) => {
       e.preventDefault();
       e.stopPropagation();
       
-      // Multiplier la vitesse de scroll par 5 pour un défilement très rapide
-      const scrollSpeed = 5;
-      const newScrollTop = panel.scrollTop + (e.deltaY * scrollSpeed);
+      const now = Date.now();
+      const deltaTime = Math.min(now - lastTime, 50);
+      lastTime = now;
       
-      // Appliquer le scroll avec une animation fluide
-      panel.scrollTo({
-        top: newScrollTop,
-        behavior: 'auto' // Immédiat pour être plus réactif
-      });
+      // 📱 VITESSE NATURELLE (2.5x) - comme sur mobile
+      const baseSpeed = 2.5;
+      
+      // Légère accélération si on scrolle vite (mais beaucoup moins qu'avant)
+      const acceleration = Math.min(Math.abs(e.deltaY) / 200, 0.5); // Max 1.5x au lieu de 2x
+      const scrollSpeed = baseSpeed * (1 + acceleration);
+      
+      // Calculer la vélocité pour le momentum doux
+      const delta = e.deltaY * scrollSpeed;
+      scrollVelocity = delta * 0.6; // Momentum réduit pour plus de contrôle
+      
+      // Scroll immédiat mais doux
+      panel.scrollTop += delta;
+      
+      // Annuler l'ancien momentum et démarrer le nouveau
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+      animationFrame = requestAnimationFrame(applyMomentum);
     };
     
     // Attacher le listener
     panel.addEventListener('wheel', this.wheelHandler, { passive: false });
-    console.log('✅ Fast scroll enabled (5x speed)');
+    console.log('✅ Natural scroll enabled (mobile-like 2.5x speed)');
   }
 
   attachFilterListeners() {
@@ -370,7 +389,6 @@ class StyloApp {
     console.log('🎯 showPanel() called with action:', action);
     const panel = document.getElementById('context-panel');
     const titleText = document.getElementById('filter-title-text');
-    const statusDiv = document.getElementById('panel-status');
 
     console.log('📦 Panel element:', panel);
     if (!panel) {
@@ -380,7 +398,6 @@ class StyloApp {
 
     // Réinitialiser le panneau
     panel.className = 'filter-modal';
-    this.hideError();
 
     // Configurer le titre
     const config = {
@@ -392,11 +409,6 @@ class StyloApp {
 
     const actionTitle = config[action] || 'Action';
     if (titleText) titleText.textContent = actionTitle;
-
-    // Cacher le statut et le bouton lancer au début
-    if (statusDiv) statusDiv.style.display = 'none';
-    const launchBtn = document.getElementById('launch-button');
-    if (launchBtn) launchBtn.style.display = 'flex';
 
     // Afficher les options IMMÉDIATEMENT selon l'action
     this.showOptions(action);
@@ -439,9 +451,6 @@ class StyloApp {
 
       // Réinitialiser après l'animation
       setTimeout(() => {
-        this.updateProgress(0);
-        this.updateStatus('Preparing...');
-        this.hideError();
         this.hideOptions();
       }, 300);
     }
@@ -590,24 +599,25 @@ class StyloApp {
   }
 
   async handlePromptEnhancement() {
+    console.log('✨ handlePromptEnhancement() STARTED');
+    console.log('✨ isProcessing:', this.isProcessing);
+    
     if (this.isProcessing) {
       console.log('⏳ Already processing, ignoring click');
       return;
     }
 
-    // Cacher les options et le bouton lancer, afficher le statut
-    this.hideOptions();
-    const launchBtn = document.getElementById('launch-button');
-    if (launchBtn) launchBtn.style.display = 'none';
-    const statusDiv = document.getElementById('panel-status');
-    if (statusDiv) statusDiv.style.display = 'block';
+    console.log('✨ Starting prompt enhancement workflow...');
 
-    // Commencer l'action
-    this.updateStatus('Preparing...');
-    this.updateProgress(5);
+    // Cacher le panneau pendant l'exécution
+    this.hidePanel();
+    
+    console.log('🔄 Panel hidden, starting processing...');
 
     this.isProcessing = true;
     this.showLoading(true);
+    
+    console.log('✨ Status updated, starting processing...');
 
     try {
       console.log('✨ Starting prompt enhancement...');
@@ -667,11 +677,12 @@ class StyloApp {
 
       // Récupérer les options
       const options = this.getOptions('improvement');
-      console.log('⚙️ Options:', options);
+      console.log('⚙️ Options utilisées pour l\'amélioration:', options);
 
       let enhancedText;
       try {
-        enhancedText = await this.callAI(copiedText, 'enhance-prompt');
+        // 🎯 PASSER LES OPTIONS à l'API
+        enhancedText = await this.callAI(copiedText, 'enhance-prompt', options);
       } catch (error) {
         await window.electronAPI.setClipboardText(oldClipboard);
         throw new Error(`Error calling AI: ${error.message}`);
@@ -797,16 +808,10 @@ class StyloApp {
       return;
     }
 
-    // Cacher les options et le bouton lancer, afficher le statut
-    this.hideOptions();
-    const launchBtn = document.getElementById('launch-button');
-    if (launchBtn) launchBtn.style.display = 'none';
-    const statusDiv = document.getElementById('panel-status');
-    if (statusDiv) statusDiv.style.display = 'block';
-
-    // Commencer l'action
-    this.updateStatus('Preparing...');
-    this.updateProgress(5);
+    // Cacher le panneau pendant l'exécution
+    this.hidePanel();
+    
+    console.log('🔄 Panel hidden, starting processing...');
 
     this.isProcessing = true;
     this.showLoading(true, 'reformulation');
@@ -862,11 +867,12 @@ class StyloApp {
 
       // Récupérer les options
       const options = this.getOptions('reformulation');
-      console.log('⚙️ Options:', options);
+      console.log('⚙️ Options utilisées pour la reformulation:', options);
 
       let rephrasedText;
       try {
-        rephrasedText = await this.callAI(copiedText, 'rephrase-text');
+        // 🎯 PASSER LES OPTIONS à l'API
+        rephrasedText = await this.callAI(copiedText, 'rephrase-text', options);
       } catch (error) {
         await window.electronAPI.setClipboardText(oldClipboard);
         throw new Error(`Error calling AI: ${error.message}`);
@@ -913,16 +919,10 @@ class StyloApp {
       return;
     }
 
-    // Cacher les options et le bouton lancer, afficher le statut
-    this.hideOptions();
-    const launchBtn = document.getElementById('launch-button');
-    if (launchBtn) launchBtn.style.display = 'none';
-    const statusDiv = document.getElementById('panel-status');
-    if (statusDiv) statusDiv.style.display = 'block';
-
-    // Commencer l'action
-    this.updateStatus('Preparing...');
-    this.updateProgress(5);
+    // Cacher le panneau pendant l'exécution
+    this.hidePanel();
+    
+    console.log('🔄 Panel hidden, starting processing...');
 
     this.isProcessing = true;
     this.showLoading(true, 'translation');
@@ -979,11 +979,12 @@ class StyloApp {
       
       // Récupérer les options
       const options = this.getOptions('translation');
-      console.log('⚙️ Translation options:', options);
+      console.log('⚙️ Options utilisées pour la traduction:', options);
       
       let translatedText;
       try {
-        translatedText = await this.callAI(copiedText, 'translate-text');
+        // 🎯 PASSER LES OPTIONS à l'API
+        translatedText = await this.callAI(copiedText, 'translate-text', options);
       } catch (error) {
         await window.electronAPI.setClipboardText(oldClipboard);
         throw new Error(`Error calling AI: ${error.message}`);
@@ -1658,7 +1659,7 @@ class StyloApp {
     // ========== HELPER POUR CHOISIR LE PROVIDER ==========
     
     // FONCTION UNIQUE pour tous les boutons - utilise le provider approprié
-    async callAI(text, action) {
+    async callAI(text, action, options = {}) {
       // Choisir le provider selon l'action
       let provider;
       if (action === 'enhance-prompt') {
@@ -1668,14 +1669,15 @@ class StyloApp {
       }
       
       console.log(`🎯 Using provider: ${provider} for ${action}`);
+      console.log(`🎨 With options:`, options);
       
-      // Router vers le bon provider
+      // Router vers le bon provider avec les options
       if (provider === 'huggingface') {
-        return await this.callHuggingFace(text, action);
+        return await this.callHuggingFace(text, action, options);
       } else if (provider === 'openrouter') {
-        return await this.callSupabaseOpenRouter(text, action);
+        return await this.callSupabaseOpenRouter(text, action, options);
       } else {
-        return await this.callSupabaseOpenAI(text, action);
+        return await this.callSupabaseOpenAI(text, action, options);
       }
     }
     
@@ -1732,7 +1734,7 @@ class StyloApp {
     }
     
     // Fonctions OpenRouter pour chaque action
-    async callSupabaseOpenRouter(text, action) {
+    async callSupabaseOpenRouter(text, action, options = {}) {
       let functionUrl;
       switch(action) {
         case 'enhance-prompt':
@@ -1749,14 +1751,19 @@ class StyloApp {
       }
       
       console.log(`🤖 Calling Supabase ${functionUrl} (OpenRouter Llama 3.3)...`);
+      console.log(`🎨 Avec les options:`, options);
       
+      // 🎯 ENVOYER LE TEXTE + LES OPTIONS
       const response = await fetch(`${window.SUPABASE_CONFIG.url}${functionUrl}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${window.SUPABASE_CONFIG.anonKey}`
         },
-        body: JSON.stringify({ text })
+        body: JSON.stringify({ 
+          text,
+          options  // 🔥 Options envoyées à l'API
+        })
       });
       
       if (!response.ok) {
@@ -1768,7 +1775,7 @@ class StyloApp {
     }
     
     // Fonctions OpenAI pour chaque action
-    async callSupabaseOpenAI(text, action) {
+    async callSupabaseOpenAI(text, action, options = {}) {
       let functionUrl;
       switch(action) {
         case 'enhance-prompt':
@@ -1785,14 +1792,19 @@ class StyloApp {
       }
       
       console.log(`🤖 Calling Supabase ${functionUrl} (OpenAI GPT-4o-mini)...`);
+      console.log(`🎨 Avec les options:`, options);
       
+      // 🎯 ENVOYER LE TEXTE + LES OPTIONS
       const response = await fetch(`${window.SUPABASE_CONFIG.url}${functionUrl}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${window.SUPABASE_CONFIG.anonKey}`
         },
-        body: JSON.stringify({ text })
+        body: JSON.stringify({ 
+          text,
+          options  // 🔥 Options envoyées à l'API
+        })
       });
       
       if (!response.ok) {

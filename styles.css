@@ -599,10 +599,10 @@ body {
     overflow-y: auto !important; /* Auto permet le scroll quand nécessaire */
     overflow-x: hidden; /* Empêche le scroll horizontal */
     
-    /* Scroll très rapide et réactif */
+    /* 🚀 SCROLL ULTRA-RAPIDE ET FLUIDE - OPTIMISÉ */
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
+    scroll-behavior: auto; /* Auto pour contrôle JS complet */
     
     /* CACHER la scrollbar mais garder la fonctionnalité de scroll */
     scrollbar-width: none; /* Firefox */
@@ -610,6 +610,15 @@ body {
     
     /* Animation d'ouverture fluide */
     animation: slideInPanel 350ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    
+    /* 🔥 ACCÉLÉRATION GPU MAXIMALE */
+    will-change: scroll-position;
+    transform: translateZ(0) translateY(0) scale(1);
+    -webkit-transform: translateZ(0) translateY(0) scale(1);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    perspective: 1000px;
+    -webkit-perspective: 1000px;
 }
 
 /* Animation d'ouverture du panneau */
@@ -631,23 +640,7 @@ body {
     height: 0;
 }
 
-/* Indicateur visuel discret qu'il y a plus de contenu en bas */
-.filter-modal.show::after {
-    content: '';
-    position: sticky;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 20px;
-    background: linear-gradient(
-        to bottom,
-        rgba(255, 255, 255, 0) 0%,
-        rgba(0, 0, 0, 0.05) 100%
-    );
-    pointer-events: none;
-    z-index: 10;
-    display: block;
-}
+/* Indicateur visuel retiré pour un design plus épuré */
 
 /* Forcer tous les éléments enfants cliquables à recevoir les événements */
 .filter-modal.show * {

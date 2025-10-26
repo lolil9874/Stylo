@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Stylo</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #000; color: #0f0; }
+        .section { margin: 20px 0; padding: 10px; border: 1px solid #0f0; }
+        button { padding: 10px; margin: 5px; background: #222; color: #0f0; border: 1px solid #0f0; cursor: pointer; }
+        button:hover { background: #333; }
+        .result { padding: 10px; background: #111; margin: 5px 0; }
+        .error { color: #f00; }
+        .success { color: #0f0; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Stylo Debug Console</h1>
+    
+    <div class="section">
+        <h2>1. Test Config Loading</h2>
+        <button onclick="testConfig()">Test Config</button>
+        <div id="config-result" class="result"></div>
+    </div>
+    
+    <div class="section">
+        <h2>2. Test ElectronAPI</h2>
+        <button onclick="testElectronAPI()">Test ElectronAPI</button>
+        <div id="electron-result" class="result"></div>
+    </div>
+    
+    <div class="section">
+        <h2>3. Test DOM Elements</h2>
+        <button onclick="testDOM()">Test DOM</button>
+        <div id="dom-result" class="result"></div>
+    </div>
+    
+    <div class="section">
+        <h2>4. Test Event Listeners</h2>
+        <button onclick="testEventListeners()">Test Listeners</button>
+        <div id="listener-result" class="result"></div>
+    </div>
+    
+    <div class="section">
+        <h2>5. Test Full Flow</h2>
+        <button onclick="testFullFlow()">Test Full Flow</button>
+        <div id="flow-result" class="result"></div>
+    </div>
+    
+    <script src="config.js"></script>
+    <script>
+        function log(target, message, isError = false) {
+            const result = document.getElementById(target);
+            const div = document.createElement('div');
+            div.className = isError ? 'error' : 'success';
+            div.textContent = `${isError ? '❌' : '✅'} ${message}`;
+            result.appendChild(div);
+        }
+        
+        function testConfig() {
+            const target = 'config-result';
+            document.getElementById(target).innerHTML = '';
+            
+            try {
+                log(target, `SUPABASE_CONFIG: ${typeof window.SUPABASE_CONFIG}`);
+                log(target, `HUGGINGFACE_CONFIG: ${typeof window.HUGGINGFACE_CONFIG}`);
+                log(target, `APP_CONFIG: ${typeof window.APP_CONFIG}`);
+                log(target, `DEEPGRAM_CONFIG: ${typeof window.DEEPGRAM_CONFIG}`);
+                
+                if (window.APP_CONFIG) {
+                    log(target, `Default provider: ${window.APP_CONFIG.providers.default}`);
+                    log(target, `Enhancement provider: ${window.APP_CONFIG.providers.promptEnhancement}`);
+                }
+                
+                log(target, 'Config loaded successfully!');
+            } catch (error) {
+                log(target, `Error: ${error.message}`, true);
+            }
+        }
+        
+        function testElectronAPI() {
+            const target = 'electron-result';
+            document.getElementById(target).innerHTML = '';
+            
+            try {
+                log(target, `window.electronAPI: ${typeof window.electronAPI}`);
+                
+                if (window.electronAPI) {
+                    const methods = [
+                        'getClipboardText',
+                        'setClipboardText',
+                        'copySelectedText',
+                        'pasteText',
+                        'rememberFrontmostApp',
+                        'reactivateFrontmostApp',
+                        'resizeWindow'
+                    ];
+                    
+                    methods.forEach(method => {
+                        log(target, `${method}: ${typeof window.electronAPI[method]}`);
+                    });
+                    
+                    log(target, 'ElectronAPI loaded successfully!');
+                } else {
+                    log(target, 'ElectronAPI not found!', true);
+                }
+            } catch (error) {
+                log(target, `Error: ${error.message}`, true);
+            }
+        }
+        
+        function testDOM() {
+            const target = 'dom-result';
+            document.getElementById(target).innerHTML = '';
+            
+            try {
+                // Ouvrir index.html dans un iframe
+                const iframe = document.createElement('iframe');
+                iframe.src = 'index.html';
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+                
+                setTimeout(() => {
+                    const doc = iframe.contentDocument;
+                    
+                    log(target, `Action buttons: ${doc.querySelectorAll('.action-button').length}`);
+                    log(target, `Context panel: ${doc.getElementById('context-panel') ? 'Found' : 'Not found'}`);
+                    log(target, `Launch button: ${doc.getElementById('launch-button') ? 'Found' : 'Not found'}`);
+                    log(target, `Panel close: ${doc.getElementById('panel-close') ? 'Found' : 'Not found'}`);
+                    log(target, `Options rephrase: ${doc.getElementById('options-rephrase') ? 'Found' : 'Not found'}`);
+                    log(target, `Options improvement: ${doc.getElementById('options-improvement') ? 'Found' : 'Not found'}`);
+                    log(target, `Options translation: ${doc.getElementById('options-translation') ? 'Found' : 'Not found'}`);
+                    
+                    document.body.removeChild(iframe);
+                    log(target, 'DOM elements checked!');
+                }, 500);
+            } catch (error) {
+                log(target, `Error: ${error.message}`, true);
+            }
+        }
+        
+        function testEventListeners() {
+            const target = 'listener-result';
+            document.getElementById(target).innerHTML = '';
+            
+            try {
+                // Test simple button click
+                const testBtn = document.createElement('button');
+                testBtn.className = 'action-button';
+                testBtn.dataset.action = 'test';
+                testBtn.textContent = 'Test Button';
+                testBtn.style.display = 'none';
+                document.body.appendChild(testBtn);
+                
+                let clicked = false;
+                testBtn.addEventListener('click', () => {
+                    clicked = true;
+                });
+                
+                testBtn.click();
+                
+                if (clicked) {
+                    log(target, 'Direct click listener works!');
+                } else {
+                    log(target, 'Direct click listener failed!', true);
+                }
+                
+                // Test document-level listener
+                let docClicked = false;
+                document.addEventListener('click', (e) => {
+                    if (e.target.closest('.test-doc-button')) {
+                        docClicked = true;
+                    }
+                }, { once: true });
+                
+                const testBtn2 = document.createElement('button');
+                testBtn2.className = 'test-doc-button';
+                testBtn2.textContent = 'Test Doc Button';
+                testBtn2.style.display = 'none';
+                document.body.appendChild(testBtn2);
+                
+                testBtn2.click();
+                
+                setTimeout(() => {
+                    if (docClicked) {
+                        log(target, 'Document-level listener works!');
+                    } else {
+                        log(target, 'Document-level listener failed!', true);
+                    }
+                    
+                    document.body.removeChild(testBtn);
+                    document.body.removeChild(testBtn2);
+                }, 100);
+                
+            } catch (error) {
+                log(target, `Error: ${error.message}`, true);
+            }
+        }
+        
+        async function testFullFlow() {
+            const target = 'flow-result';
+            document.getElementById(target).innerHTML = '';
+            
+            try {
+                log(target, 'Starting full flow test...');
+                
+                // Test 1: Config
+                if (!window.SUPABASE_CONFIG) {
+                    log(target, 'SUPABASE_CONFIG not loaded!', true);
+                    return;
+                }
+                log(target, 'Config OK');
+                
+                // Test 2: ElectronAPI
+                if (!window.electronAPI) {
+                    log(target, 'ElectronAPI not available!', true);
+                    return;
+                }
+                log(target, 'ElectronAPI OK');
+                
+                // Test 3: Clipboard
+                try {
+                    const text = await window.electronAPI.getClipboardText();
+                    log(target, `Clipboard: ${text ? text.substring(0, 20) + '...' : 'empty'}`);
+                } catch (error) {
+                    log(target, `Clipboard error: ${error.message}`, true);
+                }
+                
+                log(target, 'Full flow test completed!');
+                
+            } catch (error) {
+                log(target, `Error: ${error.message}`, true);
+            }
+        }
+        
+        // Run tests on load
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('🔍 Debug console ready');
+        });
+    </script>
+</body>
+</html>
+
