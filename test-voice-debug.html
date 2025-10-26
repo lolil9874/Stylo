@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Voice - Test Microphone</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #e5e5e5;
+            border-radius: 8px;
+        }
+        
+        .voice-button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+            width: 100%;
+        }
+        
+        .voice-button:hover {
+            background: #0056CC;
+        }
+        
+        .voice-button.recording {
+            background: #FF3B30;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .status {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        
+        .status.info { background: #E3F2FD; color: #1976D2; }
+        .status.success { background: #E8F5E8; color: #2E7D32; }
+        .status.error { background: #FFEBEE; color: #C62828; }
+        .status.warning { background: #FFF3E0; color: #F57C00; }
+        
+        .log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+        }
+        
+        .log-entry.info { color: #4FC3F7; }
+        .log-entry.success { color: #81C784; }
+        .log-entry.error { color: #F48FB1; }
+        .log-entry.warning { color: #FFB74D; }
+        
+        .browser-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug Voice - Test Microphone</h1>
+        
+        <div class="browser-info">
+            <h3>Informations du Navigateur</h3>
+            <p><strong>User Agent:</strong> <span id="user-agent"></span></p>
+            <p><strong>HTTPS:</strong> <span id="https-status"></span></p>
+            <p><strong>Speech Recognition:</strong> <span id="speech-support"></span></p>
+            <p><strong>MediaDevices:</strong> <span id="media-devices"></span></p>
+        </div>
+        
+        <div class="test-section">
+            <h3>1. Test de Détection du Clic</h3>
+            <button id="test-click" class="voice-button">Test Clic Simple</button>
+            <div id="click-status" class="status" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>2. Test d'Accès au Microphone</h3>
+            <button id="test-mic" class="voice-button">Test Microphone</button>
+            <div id="mic-status" class="status" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>3. Test Speech Recognition</h3>
+            <button id="test-speech" class="voice-button">Test Reconnaissance Vocale</button>
+            <div id="speech-status" class="status" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>4. Log de Débogage</h3>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        class VoiceDebugger {
+            constructor() {
+                this.log = document.getElementById('log');
+                this.setupBrowserInfo();
+                this.setupEventListeners();
+                this.log('🚀 Debugger Voice initialisé', 'info');
+            }
+            
+            setupBrowserInfo() {
+                document.getElementById('user-agent').textContent = navigator.userAgent;
+                document.getElementById('https-status').textContent = location.protocol === 'https:' ? '✅ Oui' : '❌ Non (requis pour microphone)';
+                document.getElementById('speech-support').textContent = 'webkitSpeechRecognition' in window ? '✅ Supporté' : '❌ Non supporté';
+                document.getElementById('media-devices').textContent = 'mediaDevices' in navigator ? '✅ Supporté' : '❌ Non supporté';
+            }
+            
+            setupEventListeners() {
+                const self = this; // Capture this context
+                
+                document.getElementById('test-click').addEventListener('click', function() {
+                    self.log('🖱️ Clic détecté!', 'success');
+                    self.showStatus('click-status', 'success', '✅ Clic détecté avec succès');
+                });
+                
+                document.getElementById('test-mic').addEventListener('click', function() {
+                    self.testMicrophone();
+                });
+                
+                document.getElementById('test-speech').addEventListener('click', function() {
+                    self.testSpeechRecognition();
+                });
+            }
+            
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const entry = document.createElement('div');
+                entry.className = `log-entry ${type}`;
+                entry.textContent = `[${timestamp}] ${message}`;
+                this.log.appendChild(entry);
+                this.log.scrollTop = this.log.scrollHeight;
+                console.log(`[${type.toUpperCase()}] ${message}`);
+            }
+            
+            showStatus(elementId, type, message) {
+                const element = document.getElementById(elementId);
+                element.textContent = message;
+                element.className = `status ${type}`;
+                element.style.display = 'block';
+            }
+            
+            async testMicrophone() {
+                try {
+                    this.log('🎤 Test d\'accès au microphone...', 'info');
+                    this.showStatus('mic-status', 'info', '🔄 Demande d\'accès au microphone...');
+                    
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            sampleRate: 16000,
+                            channelCount: 1,
+                            echoCancellation: true,
+                            noiseSuppression: true
+                        } 
+                    });
+                    
+                    this.log('✅ Accès microphone accordé', 'success');
+                    this.showStatus('mic-status', 'success', '✅ Microphone accessible');
+                    
+                    // Arrêter le stream après 2 secondes
+                    setTimeout(() => {
+                        stream.getTracks().forEach(track => track.stop());
+                        this.log('🔇 Stream microphone fermé', 'info');
+                    }, 2000);
+                    
+                } catch (error) {
+                    this.log(`❌ Erreur microphone: ${error.message}`, 'error');
+                    this.showStatus('mic-status', 'error', `❌ Erreur: ${error.message}`);
+                }
+            }
+            
+            async testSpeechRecognition() {
+                try {
+                    this.log('🗣️ Test de reconnaissance vocale...', 'info');
+                    this.showStatus('speech-status', 'info', '🔄 Test de reconnaissance vocale...');
+                    
+                    if (!('webkitSpeechRecognition' in window)) {
+                        throw new Error('Reconnaissance vocale non supportée dans ce navigateur');
+                    }
+                    
+                    const recognition = new webkitSpeechRecognition();
+                    recognition.continuous = false;
+                    recognition.interimResults = false;
+                    recognition.lang = 'fr-FR';
+                    
+                    recognition.onstart = () => {
+                        this.log('✅ Reconnaissance vocale démarrée', 'success');
+                        this.showStatus('speech-status', 'success', '✅ Reconnaissance vocale active - Parlez maintenant');
+                    };
+                    
+                    recognition.onresult = (event) => {
+                        const transcript = event.results[0][0].transcript;
+                        this.log(`📝 Transcription reçue: "${transcript}"`, 'success');
+                        this.showStatus('speech-status', 'success', `✅ Transcription: "${transcript}"`);
+                    };
+                    
+                    recognition.onerror = (event) => {
+                        this.log(`❌ Erreur reconnaissance: ${event.error}`, 'error');
+                        this.showStatus('speech-status', 'error', `❌ Erreur: ${event.error}`);
+                    };
+                    
+                    recognition.onend = () => {
+                        this.log('🔚 Reconnaissance vocale terminée', 'info');
+                    };
+                    
+                    recognition.start();
+                    
+                } catch (error) {
+                    this.log(`❌ Erreur reconnaissance: ${error.message}`, 'error');
+                    this.showStatus('speech-status', 'error', `❌ Erreur: ${error.message}`);
+                }
+            }
+        }
+        
+        // Démarrer le debugger
+        document.addEventListener('DOMContentLoaded', () => {
+            new VoiceDebugger();
+        });
+    </script>
+</body>
+</html>
