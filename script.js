@@ -1862,20 +1862,28 @@ class StyloApp {
       // Choisir le provider selon l'action
       let provider;
       
+      // DEBUG: Afficher toute la config disponible
+      console.log('🔍 Available providers config:', window.APP_CONFIG?.providers);
+      
       // Map action vers la clé de config
       if (action === 'enhance-prompt') {
         provider = window.APP_CONFIG.providers.enhance || window.APP_CONFIG.providers.default;
+        console.log('📊 Enhancement selected:', provider);
       } else if (action === 'rephrase-text') {
         provider = window.APP_CONFIG.providers.rephrase || window.APP_CONFIG.providers.default;
+        console.log('📊 Rephrase selected:', provider);
       } else if (action === 'translate-text') {
         provider = window.APP_CONFIG.providers.translate || window.APP_CONFIG.providers.default;
+        console.log('📊 Translate selected:', provider);
       } else if (action === 'voice') {
         provider = window.APP_CONFIG.providers.voice || window.APP_CONFIG.providers.default;
+        console.log('📊 Voice selected:', provider);
       } else {
         provider = window.APP_CONFIG.providers.default;
+        console.log('📊 Default selected:', provider);
       }
       
-      console.log(`🎯 Using provider: ${provider} for ${action}`);
+      console.log(`🎯 FINAL: Using provider "${provider}" for action "${action}"`);
       console.log(`🎨 With options:`, options);
       
       // Router vers le bon provider avec les options
