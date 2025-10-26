@@ -28,6 +28,7 @@ body {
     /* -webkit-backdrop-filter: blur(20px); */
     border-radius: 8px;
     position: relative;
+    z-index: 200; /* Au-dessus du panneau contextuel */
     cursor: move;
     overflow: visible;
     border: 1px solid rgba(255, 255, 255, 0.3);
@@ -81,6 +82,7 @@ body {
 /* Zone de déplacement */
 .draggable-area {
     -webkit-app-region: drag;
+    cursor: move;
 }
 
 /* Button container - centré verticalement à l'intérieur de la toolbar */
@@ -92,7 +94,7 @@ body {
     justify-content: center;
     width: 100%;
     height: 50px;
-    -webkit-app-region: no-drag;
+    -webkit-app-region: no-drag; /* Buttons are interactive, not draggable */
     position: relative;
     z-index: 2;
     height: 50px; /* Fixed height for proper positioning */
@@ -143,13 +145,26 @@ body {
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    -webkit-app-region: no-drag;
+    -webkit-app-region: no-drag; /* Buttons are interactive, not draggable */
 }
 
-/* Hover animation */
+/* Hover animation avec pulsation smooth */
 .action-button:hover {
     transform: translateY(-1px);
     background: rgba(0, 0, 0, 0.08);
+    animation: hoverPulse 1.5s ease-in-out infinite;
+}
+
+/* Animation de pulsation pendant le survol - smooth */
+@keyframes hoverPulse {
+    0%, 100% {
+        box-shadow: none;
+        transform: translateY(-1px);
+    }
+    50% {
+        box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.3);
+        transform: translateY(-1px) scale(1.02);
+    }
 }
 
 /* Animation de clic - disabled */
@@ -564,7 +579,7 @@ body {
 /* Modal principal - Transparent, intégré à la toolbar */
 .filter-modal {
     position: fixed;
-    top: 50px; /* Juste après la toolbar */
+    top: 0; /* Commence en haut de la fenêtre */
     left: 0;
     right: 0;
     width: 200px;
@@ -578,24 +593,25 @@ body {
     border-radius: 0;
     box-shadow: none;
 
-    /* Espacement avec padding à gauche */
-    padding: 8px 0 8px 6px;
+    /* Espacement optimisé - moins d'espace perdu */
+    padding: 58px 0 0 6px; /* 50px pour la toolbar, pas d'espace en bas */
 
-    /* Animation d'apparition fluide */
+    /* Animation d'apparition fluide - plus smooth */
     opacity: 0;
     transform: translateY(-20px) scale(0.95);
     max-height: 0;
     pointer-events: none;
     overflow: hidden;
-    transition: all 350ms cubic-bezier(0.23, 1, 0.32, 1);
-    z-index: 100;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 100; /* Below toolbar to allow dragging */
 }
 
 .filter-modal.show {
     opacity: 1;
     transform: translateY(0) scale(1);
-    max-height: 280px; /* Hauteur visible: 330px (fenêtre) - 50px (toolbar) = 280px */
-    pointer-events: auto !important;
+    max-height: 280px; /* valeur par défaut, sera ajustée dynamiquement */
+    /* Laisser passer les événements sur la toolbar, mais activer sur le contenu */
+    pointer-events: none !important; /* container désactivé */
     overflow-y: auto !important; /* Auto permet le scroll quand nécessaire */
     overflow-x: hidden; /* Empêche le scroll horizontal */
     
@@ -608,8 +624,8 @@ body {
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE/Edge */
     
-    /* Animation d'ouverture fluide */
-    animation: slideInPanel 350ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    /* Animation d'ouverture fluide - plus smooth */
+    animation: slideInPanel 200ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
     
     /* 🔥 ACCÉLÉRATION GPU MAXIMALE */
     will-change: scroll-position;
@@ -662,6 +678,7 @@ body {
 .filter-content {
     position: relative;
     z-index: 1;
+    /* Activer uniquement les interactions sur le contenu */
     pointer-events: auto !important;
     min-height: 0;
     height: auto;
@@ -670,23 +687,29 @@ body {
 
 /* Header caché - pas besoin de titre ni bouton fermer */
 .filter-header {
-    display: none;
+    display: none; /* keep hidden; header area shouldn't block drags */
 }
 
-/* Body avec les filtres - scrollable avec espace en bas */
+/* Body avec les filtres - scrollable optimisé */
 .filter-body {
-    margin-bottom: 12px;
-    padding-bottom: 40px;
+    margin-bottom: 0;
+    padding-bottom: 0; /* Supprime complètement l'espace en bas */
     pointer-events: auto;
     min-height: 0; /* Permet au contenu de déborder */
 }
 
-/* Groupes d'options - espacement compact */
+/* Groupes d'options - espacement compact avec transitions */
 .options-group {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px; /* Réduit l'espacement */
     pointer-events: auto;
+    margin-bottom: 0; /* Supprime l'espace en bas */
+    
+    /* Transitions smooth */
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 200ms ease, transform 200ms ease;
     
     /* Performance */
     transform: translateZ(0);
@@ -720,16 +743,16 @@ body {
     margin-bottom: 0;
 }
 
-/* Labels des sections - espacement réduit et uniforme */
+/* Labels des sections - espacement optimisé et plus joli */
 .section-label {
     font-family: 'Inter', sans-serif;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 1.2px;
-    color: rgba(0, 0, 0, 0.4);
-    margin-top: 12px;
-    margin-bottom: 8px;
+    letter-spacing: 1px;
+    color: rgba(0, 0, 0, 0.5);
+    margin-top: 8px;
+    margin-bottom: 6px;
     text-align: left;
     padding-left: 8px;
     text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
@@ -762,21 +785,21 @@ body {
 }
 
 .filter-option {
-    /* Bouton glassmorphism avec états clairs - texte réduit */
+    /* Bouton plus joli avec états clairs */
     font-family: 'Inter', sans-serif;
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 500;
-    line-height: 1.4;
-    padding: 10px 14px;
-    min-height: 32px;
-    border: 1px solid transparent;
-    border-radius: 8px;
-    background: transparent;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    line-height: 1.3;
+    padding: 8px 12px;
+    min-height: 28px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     cursor: pointer !important;
     pointer-events: auto !important;
-    transition: all 150ms ease;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -786,44 +809,48 @@ body {
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
-    box-shadow: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     
     /* État inactif - texte gris clair */
-    color: rgba(0, 0, 0, 0.45);
+    color: rgba(0, 0, 0, 0.6);
     
     /* Performance 60fps */
-    will-change: background, border-color, color;
+    will-change: background, border-color, color, transform;
     transform: translateZ(0);
 }
 
 .filter-option:hover {
-    background: rgba(0, 0, 0, 0.04);
-    border-color: rgba(0, 0, 0, 0.08);
-    color: rgba(0, 0, 0, 0.65);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.06);
+    border-color: rgba(0, 0, 0, 0.12);
+    color: rgba(0, 0, 0, 0.8);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
 }
 
 .filter-option:active {
-    transform: scale(0.98) translateZ(0);
-    background: rgba(0, 0, 0, 0.06);
+    transform: scale(0.98) translateY(0);
+    background: rgba(0, 0, 0, 0.08);
     transition: all 100ms ease;
 }
 
-/* État sélectionné/actif - fond semi-transparent gris foncé avec bordure */
+/* État sélectionné/actif - plus joli */
 .filter-option.selected {
-    background: rgba(0, 0, 0, 0.08);
-    border: 1px solid rgba(0, 0, 0, 0.12);
-    color: rgba(0, 0, 0, 0.9);
-    font-weight: 500;
+    background: rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    color: rgba(0, 0, 0, 0.95);
+    font-weight: 600;
     box-shadow: 
-        inset 0 1px 0 rgba(255, 255, 255, 0.15),
-        0 2px 8px rgba(0, 0, 0, 0.05);
+        0 2px 8px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
 }
 
 /* État sélectionné + hover */
 .filter-option.selected:hover {
-    background: rgba(0, 0, 0, 0.1);
-    border-color: rgba(0, 0, 0, 0.15);
+    background: rgba(0, 0, 0, 0.12);
+    border-color: rgba(0, 0, 0, 0.18);
+    transform: translateY(-2px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
 }
 
 /* Cacher toutes les icônes par défaut */

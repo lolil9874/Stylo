@@ -62,6 +62,21 @@ function createWindow() {
   // Allow focus and interaction
   mainWindow.setFocusable(true);
   mainWindow.setIgnoreMouseEvents(false);
+  
+  // Ensure window is draggable
+  mainWindow.setMovable(true);
+  
+  // Force enable dragging
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.webContents.executeJavaScript(`
+      // Ensure drag regions are properly set
+      const draggableArea = document.querySelector('.draggable-area');
+      if (draggableArea) {
+        draggableArea.style.webkitAppRegion = 'drag';
+        console.log('✅ Drag region enabled');
+      }
+    `);
+  });
 
   // Create tray icon for easy access
   createTray();
@@ -109,6 +124,12 @@ function createMenu() {
     {
       label: 'Provider',
       submenu: [
+        {
+          label: `LettA AI ${currentProvider === 'letta' ? '✓' : ''}`,
+          type: 'radio',
+          checked: currentProvider === 'letta',
+          click: () => updateProvider('default', 'letta')
+        },
         {
           label: `OpenRouter (Llama 3.3) ${currentProvider === 'openrouter' ? '✓' : ''}`,
           type: 'radio',
@@ -168,9 +189,17 @@ function createTray() {
       label: 'Configuration',
       submenu: [
         {
-          label: 'OpenAI',
+          label: 'LettA AI',
           type: 'radio',
           checked: true,
+          click: () => {
+            // Switch to LettA provider
+            console.log('Switched to LettA AI');
+          }
+        },
+        {
+          label: 'OpenAI',
+          type: 'radio',
           click: () => {
             // Switch to OpenAI provider
             console.log('Switched to OpenAI');

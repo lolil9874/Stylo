@@ -16,6 +16,11 @@ const SUPABASE_CONFIG = {
     rephraseTextOpenAI: '/functions/v1/rephrase-text',
     translateTextOpenAI: '/functions/v1/translate-text',
     
+    // LettA AI - NOUVEAU PROVIDER ⭐
+    enhancePromptLettA: '/functions/v1/enhance-prompt-letta',
+    rephraseTextLettA: '/functions/v1/rephrase-text-letta',
+    translateTextLettA: '/functions/v1/translate-text-letta',
+    
     voiceProcessing: '/functions/v1/voice-processing'
   }
   // Note: Toutes les fonctions utilisent maintenant OpenRouter (Llama 3.3) par défaut !
@@ -62,8 +67,8 @@ const HUGGINGFACE_CONFIG = {
 
 // Configuration de l'app
 const APP_CONFIG = {
-  // Timeout pour les requêtes réseau (en ms) - AUGMENTÉ pour sessions longues
-  networkTimeout: 30000,        // 30 secondes au lieu de 10
+  // Timeout pour les requêtes réseau (en ms) - AUGMENTÉ pour LettA AI
+  networkTimeout: 120000,       // 2 minutes pour LettA AI
   
   // Timeout spécifique pour Deepgram (en ms)
   deepgramTimeout: 60000,       // 60 secondes pour les sessions vocales
@@ -89,10 +94,11 @@ const APP_CONFIG = {
   // Options: 
   //   - 'openrouter' (Llama 3.3 - gratuit, rapide)
   //   - 'openai' (GPT-4o-mini - payant, précis)
-  //   - 'huggingface' (Prompt++ - gratuit, spécialisé prompts) ⭐ NOUVEAU
+  //   - 'letta' (LettA AI - nouveau provider) ⭐ NOUVEAU
+  //   - 'huggingface' (Prompt++ - gratuit, spécialisé prompts)
   providers: {
-    default: 'openai',  // ✍️🌍 Rephrasing et Translation
-    promptEnhancement: 'openai'  // ⭐ Enhancement utilise OpenAI par défaut
+    default: 'letta',  // ✍️🌍 Rephrasing et Translation - LettA par défaut
+    promptEnhancement: 'letta'  // ⭐ Enhancement utilise LettA par défaut
   }
 };
 

@@ -10,7 +10,5 @@
   "dependencies": {
     "supabase": "^1.0.0"
   },
-  "devDependencies": {
-    "@types/deno": "^1.0.0"
-  }
+  "devDependencies": {}
 }

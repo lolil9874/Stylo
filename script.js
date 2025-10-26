@@ -144,71 +144,164 @@ class StyloApp {
   // Dragging is native; no front-end drag code
 
   setupEventListeners() {
-    // IMPORTANT: Mémoriser l'app frontmost au survol du bouton (avant le clic)
+    // 🚀 SYSTÈME SIMPLE ET ROBUSTE
+    let hoverTimer = null;
+    let closeTimer = null;
+    let isMenuOpen = false;
+    let currentAction = null;
+    
+    // État global partagé pour les changements instantanés
+    window.styloAppState = { isMenuOpen: false, currentAction: null };
+
+    // Fonction pour nettoyer tous les timers
+    const clearAllTimers = () => {
+      if (hoverTimer) {
+        clearTimeout(hoverTimer);
+        hoverTimer = null;
+      }
+      if (closeTimer) {
+        clearTimeout(closeTimer);
+        closeTimer = null;
+      }
+    };
+
+    // Fonction pour ouvrir le menu avec transition smooth
+    const openMenu = (action) => {
+      clearAllTimers();
+      console.log(`📂 Opening menu for: ${action}`);
+      
+      // Si c'est le même menu, ne rien faire
+      if (isMenuOpen && currentAction === action) {
+        console.log(`🔄 Same menu already open: ${action}`);
+        return;
+      }
+      
+      // Ouvrir le menu
+      this.showPanel(action);
+      isMenuOpen = true;
+      currentAction = action;
+      window.styloAppState.isMenuOpen = true;
+      window.styloAppState.currentAction = action;
+      
+      console.log(`✅ Menu opened for: ${action}, isMenuOpen: ${isMenuOpen}`);
+    };
+
+    // Fonction pour fermer le menu
+    const closeMenu = () => {
+      clearAllTimers();
+      console.log('📂 Closing menu');
+      this.hidePanel();
+      isMenuOpen = false;
+      currentAction = null;
+      window.styloAppState.isMenuOpen = false;
+      window.styloAppState.currentAction = null;
+    };
+
+    // Fonction pour programmer la fermeture avec animation smooth
+    const scheduleClose = () => {
+      clearAllTimers();
+      closeTimer = setTimeout(() => {
+        console.log('📂 Auto-closing menu after delay');
+        // Animation smooth de fermeture
+        const panel = document.getElementById('context-panel');
+        if (panel && panel.classList.contains('show')) {
+          panel.style.opacity = '0';
+          panel.style.transform = 'translateY(-20px) scale(0.95)';
+          panel.style.maxHeight = '0';
+          setTimeout(() => {
+            closeMenu();
+          }, 200);
+        } else {
+          closeMenu();
+        }
+      }, 250);
+    };
+
+    // Boutons d'action
     const buttons = document.querySelectorAll('.action-button');
     buttons.forEach(button => {
+      const action = button.dataset.action;
+
+      // Survol d'un bouton
       button.addEventListener('mouseenter', async () => {
+        console.log(`🖱️ Mouse entered: ${action}, isMenuOpen: ${isMenuOpen}, currentAction: ${currentAction}`);
+
+        // Mémoriser l'app frontmost
         if (window.electronAPI && window.electronAPI.rememberFrontmostApp) {
           try {
             await window.electronAPI.rememberFrontmostApp();
-            console.log('📱 Frontmost app remembered on hover');
+            console.log('📱 Frontmost app remembered');
           } catch (error) {
             console.error('⚠️ Error remembering frontmost app:', error);
           }
         }
+
+        // Annuler la fermeture programmée
+        if (closeTimer) {
+          clearTimeout(closeTimer);
+          closeTimer = null;
+          console.log('🚫 Cancelled close timer');
+        }
+
+        // Si le menu est déjà ouvert, changer immédiatement
+        if (isMenuOpen || window.styloAppState.isMenuOpen) {
+          console.log(`🔄 Switching instantly to: ${action}`);
+          // Changement instantané - appeler directement showPanel
+          this.showPanel(action);
+          currentAction = action;
+          window.styloAppState.currentAction = action;
+        } else {
+          // Sinon, programmer l'ouverture après 1.5s
+          console.log(`⏱️ Scheduling open for: ${action}`);
+          hoverTimer = setTimeout(() => {
+            console.log(`📂 Opening after delay: ${action}`);
+            openMenu(action);
+          }, 1500);
+        }
+      });
+
+      // Sortie d'un bouton
+      button.addEventListener('mouseleave', () => {
+        console.log(`🖱️ Mouse left: ${action}`);
+        // Annuler l'ouverture programmée
+        if (hoverTimer) {
+          clearTimeout(hoverTimer);
+          hoverTimer = null;
+        }
+      });
+
+      // Clic sur un bouton
+      button.addEventListener('click', async (e) => {
+        // Don't prevent default for drag functionality
+        console.log(`🎯 Clicked: ${action}`);
+
+        // Fermer le menu et exécuter l'action
+        closeMenu();
+        this.executeAction(action);
       });
     });
 
-    // Système de détection de double-clic
-    let clickTimer = null;
-    let clickCount = 0;
-    let lastClickedButton = null;
+    // Zone Stylo (toolbar + panel)
+    const styloArea = document.querySelector('.floating-panel');
+    const panelArea = document.querySelector('#context-panel .filter-content') || document.getElementById('context-panel');
 
-    // Écouter les clics sur les boutons
-    document.addEventListener('click', async (e) => {
-      if (!e || !e.target) return;
-      const button = e.target.closest('.action-button');
-      if (button) {
-        const action = button.dataset.action;
-
-        // Si c'est le même bouton, incrémenter le compteur
-        if (lastClickedButton === button) {
-          clickCount++;
-        } else {
-          // Nouveau bouton, réinitialiser
-          clickCount = 1;
-          lastClickedButton = button;
+    [styloArea, panelArea].filter(Boolean).forEach(area => {
+      // Entrée dans la zone Stylo
+      area.addEventListener('mouseenter', () => {
+        console.log('🖱️ Mouse entered Stylo area');
+        // Annuler la fermeture programmée
+        if (closeTimer) {
+          clearTimeout(closeTimer);
+          closeTimer = null;
         }
+      });
 
-        console.log(`🎯 Button clicked: ${action} (click ${clickCount})`);
-
-        // Annuler le timer précédent
-        if (clickTimer) {
-          clearTimeout(clickTimer);
-        }
-
-        // Si double-clic détecté
-        if (clickCount === 2) {
-          console.log('🚀 Double-click detected - Executing action directly with default params');
-          clickCount = 0;
-          lastClickedButton = null;
-          this.executeAction(action);
-        } else {
-          // Simple clic - attendre pour voir si un deuxième clic arrive
-          clickTimer = setTimeout(() => {
-            console.log('📂 Single click - Opening filter panel');
-            const panel = document.getElementById('context-panel');
-            if (panel && panel.classList.contains('show') && this.currentAction === action) {
-              console.log('🔄 Same button clicked - toggling panel off');
-              this.hidePanel();
-            } else {
-              this.showPanel(action);
-            }
-            clickCount = 0;
-            lastClickedButton = null;
-          }, 300); // Délai de 300ms pour détecter le double-clic
-        }
-      }
+      // Sortie de la zone Stylo
+      area.addEventListener('mouseleave', () => {
+        console.log('🖱️ Mouse left Stylo area');
+        // Programmer la fermeture quasi-instantanée
+        scheduleClose();
+      });
     });
   }
 
@@ -396,8 +489,13 @@ class StyloApp {
       return;
     }
 
-    // Réinitialiser le panneau
+    // Réinitialiser le panneau complètement
     panel.className = 'filter-modal';
+    panel.style.opacity = '0';
+    panel.style.transform = 'translateY(-20px) scale(0.95)';
+    panel.style.maxHeight = '0';
+    panel.style.pointerEvents = 'none';
+    panel.style.visibility = 'hidden';
 
     // Configurer le titre
     const config = {
@@ -413,47 +511,79 @@ class StyloApp {
     // Afficher les options IMMÉDIATEMENT selon l'action
     this.showOptions(action);
 
-    // Afficher le panneau
-    console.log('🎨 Before adding show class:', panel.classList.toString());
+    // Ajuster la hauteur selon le contenu visible
+    const optionsDiv = document.getElementById('panel-options');
+    let computedHeight = 0;
+    if (optionsDiv) {
+      // Mesurer le contenu réel visible
+      optionsDiv.style.display = 'block';
+      const rect = optionsDiv.getBoundingClientRect();
+      computedHeight = Math.min(280, Math.ceil(rect.height + 12));
+    }
+
+    // Afficher le panneau avec animation
+    console.log('🎨 Adding show class for:', action);
     panel.classList.add('show');
-    console.log('🎨 After adding show class:', panel.classList.toString());
+    
+    // Forcer les styles d'affichage
+    panel.style.opacity = '1';
+    panel.style.transform = 'translateY(0) scale(1)';
+    panel.style.maxHeight = (computedHeight || 280) + 'px';
+    panel.style.pointerEvents = 'auto';
+    panel.style.visibility = 'visible';
     
     // IMPORTANT: Attacher les listeners APRÈS avoir affiché les filtres
     setTimeout(() => {
       this.attachFilterListeners();
     }, 50);
     
-    // Améliorer le scroll avec la molette de la souris
-    this.setupFastScroll(panel);
+    // Améliorer le scroll avec la molette de la souris (sur le contenu pour éviter pointer-events)
+    const scrollTarget = panel.querySelector('.filter-content') || panel;
+    this.setupFastScroll(scrollTarget);
     
-    // Redimensionner la fenêtre pour afficher le panneau
+    // Redimensionner la fenêtre pour afficher le panneau (ajustée au contenu)
     if (window.electronAPI && window.electronAPI.resizeWindow) {
-      window.electronAPI.resizeWindow(200, 330); // Hauteur réduite pour style minimaliste
-      console.log('🖼️  Window resized to show panel');
+      const targetHeight = 50 + (computedHeight || 280); // 50 = toolbar
+      window.electronAPI.resizeWindow(200, targetHeight);
+      console.log('🖼️ Window resized to:', targetHeight);
     }
     
     this.currentAction = action;
+    // Mettre à jour l'état global pour les changements instantanés
+    if (window.styloAppState) {
+      window.styloAppState.isMenuOpen = true;
+      window.styloAppState.currentAction = action;
+    }
 
-    console.log('📂 Panel opened:', action);
+    console.log('📂 Panel opened successfully for:', action);
   }
 
   hidePanel() {
+    console.log('📂 Hiding panel');
     const panel = document.getElementById('context-panel');
     if (panel) {
+      // Retirer les classes d'état
       panel.classList.remove('show', 'success', 'error');
-      this.currentAction = null;
-
+      
       // Redimensionner la fenêtre à la taille originale
       if (window.electronAPI && window.electronAPI.resizeWindow) {
-        window.electronAPI.resizeWindow(200, 50); // Retour à la taille toolbar uniquement
-        console.log('🖼️  Window resized back to toolbar size');
+        window.electronAPI.resizeWindow(200, 50);
+        console.log('🖼️ Window resized back to toolbar size');
       }
 
       // Réinitialiser après l'animation
       setTimeout(() => {
         this.hideOptions();
-      }, 300);
+        // S'assurer que le panel est complètement caché
+        panel.style.opacity = '0';
+        panel.style.transform = 'translateY(-20px) scale(0.95)';
+        panel.style.maxHeight = '0';
+        panel.style.pointerEvents = 'none';
+        panel.style.visibility = 'hidden';
+      }, 200);
     }
+    
+    this.currentAction = null;
   }
 
   updateStatus(message) {
@@ -497,26 +627,63 @@ class StyloApp {
   }
 
   showOptions(action) {
+    console.log(`🎨 Showing options for: ${action}`);
+    
     const optionsDiv = document.getElementById('panel-options');
     const rephraseOptions = document.getElementById('options-rephrase');
     const improvementOptions = document.getElementById('options-improvement');
     const translationOptions = document.getElementById('options-translation');
+    const voiceOptions = document.getElementById('options-voice');
 
-    // Cacher toutes les options
-    if (rephraseOptions) rephraseOptions.style.display = 'none';
-    if (improvementOptions) improvementOptions.style.display = 'none';
-    if (translationOptions) translationOptions.style.display = 'none';
+    // Cacher toutes les options IMMÉDIATEMENT
+    [rephraseOptions, improvementOptions, translationOptions, voiceOptions].forEach(el => {
+      if (el) {
+        el.style.display = 'none';
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(-10px)';
+      }
+    });
 
-    // Afficher les options appropriées
-    if (action === 'reformulation' && rephraseOptions) {
-      rephraseOptions.style.display = 'flex';
-      if (optionsDiv) optionsDiv.style.display = 'block';
-    } else if (action === 'improvement' && improvementOptions) {
-      improvementOptions.style.display = 'flex';
-      if (optionsDiv) optionsDiv.style.display = 'block';
-    } else if (action === 'translation' && translationOptions) {
-      translationOptions.style.display = 'flex';
-      if (optionsDiv) optionsDiv.style.display = 'block';
+    // Afficher les options appropriées IMMÉDIATEMENT
+    let targetOptions = null;
+    switch(action) {
+      case 'reformulation':
+        targetOptions = rephraseOptions;
+        break;
+      case 'improvement':
+        targetOptions = improvementOptions;
+        break;
+      case 'translation':
+        targetOptions = translationOptions;
+        break;
+      case 'voice':
+        targetOptions = voiceOptions;
+        break;
+    }
+
+    if (targetOptions) {
+      console.log(`✅ Showing ${action} options`);
+      
+      // Afficher immédiatement
+      targetOptions.style.display = 'flex';
+      
+      // Animer l'apparition après un micro-délai
+      requestAnimationFrame(() => {
+        targetOptions.style.opacity = '1';
+        targetOptions.style.transform = 'translateY(0)';
+      });
+      
+      if (optionsDiv) {
+        optionsDiv.style.display = 'block';
+      }
+    } else {
+      console.warn(`⚠️ No options found for action: ${action}`);
+    }
+
+    // Remonter en haut du panneau
+    const panel = document.getElementById('context-panel');
+    if (panel) {
+      panel.scrollTop = 0;
     }
   }
 
@@ -1676,6 +1843,8 @@ class StyloApp {
         return await this.callHuggingFace(text, action, options);
       } else if (provider === 'openrouter') {
         return await this.callSupabaseOpenRouter(text, action, options);
+      } else if (provider === 'letta') {
+        return await this.callSupabaseLettA(text, action, options);
       } else {
         return await this.callSupabaseOpenAI(text, action, options);
       }
@@ -1893,6 +2062,60 @@ class StyloApp {
         throw new Error('Timeout: La requête a pris trop de temps');
       }
       console.error('❌ Error calling Supabase OpenRouter:', error);
+      throw error;
+    }
+  }
+
+  // ========== FONCTIONS LETTA AI (NOUVEAU PROVIDER) ==========
+  
+  // Fonction principale pour appeler les fonctions LettA via Supabase
+  async callSupabaseLettA(text, action, options = {}) {
+    try {
+      console.log(`🚀 Calling Supabase LettA AI for ${action}...`);
+      
+      let functionUrl;
+      let requestBody = { text, ...options };
+      
+      // Choisir la bonne fonction selon l'action
+      switch (action) {
+        case 'enhance-prompt':
+          functionUrl = `${window.SUPABASE_CONFIG.url}${window.SUPABASE_CONFIG.functions.enhancePromptLettA}`;
+          break;
+        case 'rephrase-text':
+          functionUrl = `${window.SUPABASE_CONFIG.url}${window.SUPABASE_CONFIG.functions.rephraseTextLettA}`;
+          break;
+        case 'translate-text':
+          functionUrl = `${window.SUPABASE_CONFIG.url}${window.SUPABASE_CONFIG.functions.translateTextLettA}`;
+          break;
+        default:
+          throw new Error(`Action non supportée: ${action}`);
+      }
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), window.APP_CONFIG.networkTimeout);
+      
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${window.SUPABASE_CONFIG.anonKey}`,
+          'apikey': window.SUPABASE_CONFIG.anonKey
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        console.error(`❌ LettA API error: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.enhanced_text || data.result || data.rephrased_text || data.translated_text;
+    } catch (error) {
+      console.error(`❌ Error calling LettA AI for ${action}:`, error);
       throw error;
     }
   }
