@@ -310,28 +310,84 @@ class StyloApp {
 
     // Zone Stylo (toolbar + panel)
     const styloArea = document.querySelector('.floating-panel');
-    const panelArea = document.querySelector('#context-panel .filter-content') || document.getElementById('context-panel');
+    const panelArea = document.querySelector('#context-panel');
 
-    [styloArea, panelArea].filter(Boolean).forEach(area => {
-      // Entrée dans la zone Stylo
-      area.addEventListener('mouseenter', () => {
-        console.log('🖱️ Mouse entered Stylo area');
-        // Annuler la fermeture programmée
+    // DEBUG: Log les zones détectées
+    console.log('📍 Stylo area:', styloArea);
+    console.log('📍 Panel area:', panelArea);
+
+    // Fonction pour vérifier si la souris est dans Stylo
+    const isMouseOverStylo = (e) => {
+      const styloPanel = document.querySelector('.floating-panel');
+      const contextPanel = document.getElementById('context-panel');
+      const relatedTarget = e.relatedTarget;
+      
+      // Si la souris va vers un élément de Stylo, on est encore dedans
+      if (relatedTarget && (
+        styloPanel?.contains(relatedTarget) || 
+        contextPanel?.contains(relatedTarget)
+      )) {
+        return true;
+      }
+      
+      // Sinon, on est sorti
+      return false;
+    };
+
+    // Listener global sur mousemove pour détecter quand la souris quitte Stylo
+    document.addEventListener('mousemove', (e) => {
+      const styloPanel = document.querySelector('.floating-panel');
+      const contextPanel = document.getElementById('context-panel');
+      
+      // Vérifier si la souris est dans Stylo
+      const isInside = (styloPanel && styloPanel.contains(e.target)) || 
+                      (contextPanel && contextPanel.contains(e.target));
+      
+      if (isInside) {
+        // Annuler la fermeture si on est dedans
         if (closeTimer) {
           clearTimeout(closeTimer);
           closeTimer = null;
         }
+      } else if (isMenuOpen) {
+        // Si on est dehors ET que le menu est ouvert, programmer la fermeture
+        if (!closeTimer) {
+          console.log('🖱️ Mouse outside Stylo, scheduling close');
+          scheduleClose();
+        }
+      }
+    });
+
+    [styloArea, panelArea].filter(Boolean).forEach((area, index) => {
+      console.log(`✅ Setting up listeners for area ${index}:`, area);
+      
+      // Entrée dans la zone Stylo
+      area.addEventListener('mouseenter', (e) => {
+        console.log(`🖱️ Mouse entered Stylo area ${index}`, e.target);
+        // Annuler la fermeture programmée
+        if (closeTimer) {
+          clearTimeout(closeTimer);
+          closeTimer = null;
+          console.log('🚫 Cancelled close timer on enter');
+        }
       });
 
       // Sortie de la zone Stylo
-      area.addEventListener('mouseleave', () => {
-        console.log('🖱️ Mouse left Stylo area');
+      area.addEventListener('mouseleave', (e) => {
+        console.log(`🖱️ Mouse left Stylo area ${index}`, e.target);
+        
+        // Si on va vers un autre élément de Stylo, ne pas fermer
+        if (isMouseOverStylo(e)) {
+          console.log('🖱️ Mouse still over Stylo, not closing');
+          return;
+        }
         
         // Réinitialiser les flags de suppression quand on sort complètement de Stylo
         suppressHover = false;
         clickCooldownUntil = 0;
         
         // Programmer la fermeture quasi-instantanée
+        console.log('⏰ Scheduling close in 250ms...');
         scheduleClose();
       });
     });
