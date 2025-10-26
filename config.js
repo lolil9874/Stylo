@@ -77,9 +77,13 @@ const APP_CONFIG = {
   },
   
   // 🎯 CHOIX DU PROVIDER POUR TOUS LES BOUTONS
-  // Options: 'openrouter' (Llama 3.3 - gratuit, rapide) ou 'openai' (GPT-4o-mini - payant, précis)
+  // Options: 
+  //   - 'openrouter' (Llama 3.3 - gratuit, rapide)
+  //   - 'openai' (GPT-4o-mini - payant, précis)
+  //   - 'huggingface' (Prompt++ - gratuit, spécialisé prompts) ⭐ NOUVEAU
   providers: {
-    default: 'openai'  // ⭐✍️🌍 Tous les boutons utilisent le même provider
+    default: 'openai',  // ✍️🌍 Rephrasing et Translation
+    promptEnhancement: 'huggingface'  // ⭐ Enhancement utilise Hugging Face Prompt++
   }
 };
 
@@ -88,6 +92,7 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = { SUPABASE_CONFIG, APP_CONFIG, DEEPGRAM_CONFIG };
 } else {
   window.SUPABASE_CONFIG = SUPABASE_CONFIG;
+  window.HUGGINGFACE_CONFIG = HUGGINGFACE_CONFIG;
   window.APP_CONFIG = APP_CONFIG;
   window.DEEPGRAM_CONFIG = DEEPGRAM_CONFIG;
 }

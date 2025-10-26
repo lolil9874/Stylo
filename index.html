@@ -35,8 +35,273 @@
 
     </div>
 
+    <!-- Panneau contextuel avec glassmorphism -->
+    <div id="context-panel" class="filter-modal">
+        <!-- Angular gradient border (identique à la toolbar) -->
+        <div class="gradient-border"></div>
+        
+        <div class="filter-content">
+            <!-- Header avec titre et bouton fermer -->
+            <div class="filter-header">
+                <div class="filter-title">
+                    <span class="filter-title-text" id="filter-title-text">Rephrasing</span>
+                </div>
+                <button class="close-button" id="panel-close">
+                    <img src="icone/x.svg" class="close-icon" alt="Close">
+                </button>
+            </div>
 
-        <script src="config.js"></script>
-        <script src="script.js"></script>
-    </body>
+            <!-- Options de filtres (affichées selon le contexte) -->
+            <div class="filter-body" id="panel-options">
+                <!-- Options Rephrasing -->
+                <div id="options-rephrase" class="options-group" style="display: none;">
+                    <div class="filter-section">
+                        <div class="section-label">STYLE</div>
+                        <div class="filter-options">
+                            <button class="filter-option selected" data-filter="rephrase-type" data-value="professional">
+                                <img src="icone/briefcase.svg" class="filter-option-icon" alt="">
+                                <span>Professional</span>
+                            </button>
+                            <button class="filter-option" data-filter="rephrase-type" data-value="casual">
+                                <img src="icone/smile.svg" class="filter-option-icon" alt="">
+                                <span>Casual</span>
+                            </button>
+                            <button class="filter-option" data-filter="rephrase-type" data-value="formal">
+                                <img src="icone/graduation-cap.svg" class="filter-option-icon" alt="">
+                                <span>Formal</span>
+                            </button>
+                            <button class="filter-option" data-filter="rephrase-type" data-value="simple">
+                                <img src="icone/sparkles.svg" class="filter-option-icon" alt="">
+                                <span>Simple</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="filter-section">
+                        <div class="section-label">TONE</div>
+                        <div class="filter-options">
+                            <button class="filter-option selected" data-filter="rephrase-tone" data-value="neutral">
+                                <img src="icone/scale.svg" class="filter-option-icon" alt="">
+                                <span>Balanced</span>
+                            </button>
+                            <button class="filter-option" data-filter="rephrase-tone" data-value="friendly">
+                                <img src="icone/feather.svg" class="filter-option-icon" alt="">
+                                <span>Light</span>
+                            </button>
+                            <button class="filter-option" data-filter="rephrase-tone" data-value="assertive">
+                                <img src="icone/zap.svg" class="filter-option-icon" alt="">
+                                <span>Assertive</span>
+                            </button>
+                            <button class="filter-option" data-filter="rephrase-tone" data-value="persuasive">
+                                <img src="icone/target.svg" class="filter-option-icon" alt="">
+                                <span>Direct</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="filter-section">
+                        <div class="section-label">LENGTH</div>
+                        <div class="filter-options">
+                            <button class="filter-option" data-filter="rephrase-length" data-value="shorter">
+                                <img src="icone/arrow-down.svg" class="filter-option-icon" alt="">
+                                <span>Shorten</span>
+                            </button>
+                            <button class="filter-option selected" data-filter="rephrase-length" data-value="same">
+                                <img src="icone/arrow-right.svg" class="filter-option-icon" alt="">
+                                <span>Maintain</span>
+                            </button>
+                            <button class="filter-option" data-filter="rephrase-length" data-value="longer">
+                                <img src="icone/arrow-up.svg" class="filter-option-icon" alt="">
+                                <span>Extend</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="filter-section">
+                        <div class="section-label">CORRECTIONS</div>
+                        <div class="filter-options">
+                            <button class="filter-option selected" data-filter="rephrase-corrections" data-value="all">
+                                <img src="icone/check.svg" class="filter-option-icon" alt="">
+                                <span>Grammar</span>
+                            </button>
+                            <button class="filter-option" data-filter="rephrase-corrections" data-value="grammar">
+                                <img src="icone/edit.svg" class="filter-option-icon" alt="">
+                                <span>Spelling</span>
+                            </button>
+                            <button class="filter-option" data-filter="rephrase-corrections" data-value="minimal">
+                                <img src="icone/minus.svg" class="filter-option-icon" alt="">
+                                <span>None</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Options Improvement -->
+                <div id="options-improvement" class="options-group" style="display: none;">
+                    <div class="filter-section">
+                        <div class="section-label">GOAL</div>
+                        <div class="filter-options">
+                            <button class="filter-option selected" data-filter="prompt-goal" data-value="informative">
+                                <img src="icone/edit.svg" class="filter-option-icon" alt="">
+                                <span>Informative</span>
+                            </button>
+                            <button class="filter-option" data-filter="prompt-goal" data-value="creative">
+                                <img src="icone/sparkles.svg" class="filter-option-icon" alt="">
+                                <span>Creative</span>
+                            </button>
+                            <button class="filter-option" data-filter="prompt-goal" data-value="analytical">
+                                <img src="icone/target.svg" class="filter-option-icon" alt="">
+                                <span>Analytical</span>
+                            </button>
+                            <button class="filter-option" data-filter="prompt-goal" data-value="technical">
+                                <img src="icone/briefcase.svg" class="filter-option-icon" alt="">
+                                <span>Technical</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="filter-section">
+                        <div class="section-label">AUDIENCE</div>
+                        <div class="filter-options">
+                            <button class="filter-option selected" data-filter="prompt-audience" data-value="general">
+                                <img src="icone/smile.svg" class="filter-option-icon" alt="">
+                                <span>General</span>
+                            </button>
+                            <button class="filter-option" data-filter="prompt-audience" data-value="expert">
+                                <img src="icone/graduation-cap.svg" class="filter-option-icon" alt="">
+                                <span>Expert</span>
+                            </button>
+                            <button class="filter-option" data-filter="prompt-audience" data-value="beginner">
+                                <img src="icone/feather.svg" class="filter-option-icon" alt="">
+                                <span>Beginner</span>
+                            </button>
+                            <button class="filter-option" data-filter="prompt-audience" data-value="technical">
+                                <img src="icone/zap.svg" class="filter-option-icon" alt="">
+                                <span>Technical</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="filter-section">
+                        <div class="section-label">DETAIL</div>
+                        <div class="filter-options">
+                            <button class="filter-option" data-filter="prompt-detail" data-value="concise">
+                                <img src="icone/arrow-down.svg" class="filter-option-icon" alt="">
+                                <span>Concise</span>
+                            </button>
+                            <button class="filter-option selected" data-filter="prompt-detail" data-value="balanced">
+                                <img src="icone/scale.svg" class="filter-option-icon" alt="">
+                                <span>Balanced</span>
+                            </button>
+                            <button class="filter-option" data-filter="prompt-detail" data-value="detailed">
+                                <img src="icone/arrow-up.svg" class="filter-option-icon" alt="">
+                                <span>Detailed</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="filter-section">
+                        <div class="section-label">FORMAT</div>
+                        <div class="filter-options">
+                            <button class="filter-option selected" data-filter="prompt-format" data-value="paragraph">
+                                <img src="icone/edit.svg" class="filter-option-icon" alt="">
+                                <span>Paragraph</span>
+                            </button>
+                            <button class="filter-option" data-filter="prompt-format" data-value="bullet">
+                                <img src="icone/minus.svg" class="filter-option-icon" alt="">
+                                <span>Bullets</span>
+                            </button>
+                            <button class="filter-option" data-filter="prompt-format" data-value="numbered">
+                                <img src="icone/arrow-right.svg" class="filter-option-icon" alt="">
+                                <span>Numbered</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Options Translation -->
+                <div id="options-translation" class="options-group" style="display: none;">
+                    <div class="filter-section">
+                        <div class="section-label">TARGET LANGUAGE</div>
+                        <div class="filter-options">
+                            <button class="filter-option selected" data-filter="translate-target" data-value="en">
+                                <span>🇬🇧 English</span>
+                            </button>
+                            <button class="filter-option" data-filter="translate-target" data-value="es">
+                                <span>🇪🇸 Spanish</span>
+                            </button>
+                            <button class="filter-option" data-filter="translate-target" data-value="de">
+                                <span>🇩🇪 German</span>
+                            </button>
+                            <button class="filter-option" data-filter="translate-target" data-value="zh">
+                                <span>🇨🇳 Chinese</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="filter-section">
+                        <div class="section-label">STYLE</div>
+                        <div class="filter-options">
+                            <button class="filter-option selected" data-filter="translate-style" data-value="standard">
+                                <img src="icone/scale.svg" class="filter-option-icon" alt="">
+                                <span>Standard</span>
+                            </button>
+                            <button class="filter-option" data-filter="translate-style" data-value="formal">
+                                <img src="icone/graduation-cap.svg" class="filter-option-icon" alt="">
+                                <span>Formal</span>
+                            </button>
+                            <button class="filter-option" data-filter="translate-style" data-value="casual">
+                                <img src="icone/smile.svg" class="filter-option-icon" alt="">
+                                <span>Casual</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="filter-section">
+                        <div class="section-label">CONTEXT</div>
+                        <div class="filter-options">
+                            <button class="filter-option selected" data-filter="translate-context" data-value="general">
+                                <img src="icone/smile.svg" class="filter-option-icon" alt="">
+                                <span>General</span>
+                            </button>
+                            <button class="filter-option" data-filter="translate-context" data-value="business">
+                                <img src="icone/briefcase.svg" class="filter-option-icon" alt="">
+                                <span>Business</span>
+                            </button>
+                            <button class="filter-option" data-filter="translate-context" data-value="technical">
+                                <img src="icone/zap.svg" class="filter-option-icon" alt="">
+                                <span>Technical</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bouton d'action principal -->
+            <button class="action-button-primary" id="launch-button">
+                <img src="icone/play.svg" class="action-button-primary-icon" alt="">
+                <span>Launch</span>
+            </button>
+
+            <!-- Zone de statut (cachée par défaut, montrée pendant l'exécution) -->
+            <div class="panel-status" id="panel-status" style="display: none;">
+                <div class="status-message" id="status-message">
+                    Preparing action...
+                </div>
+                <div class="progress-bar" id="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Zone d'erreur (cachée par défaut) -->
+            <div class="panel-error" id="panel-error" style="display: none;">
+                <div class="error-message" id="error-message"></div>
+                <button class="retry-button" id="retry-button">Retry</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="script.js"></script>
+</body>
 </html>

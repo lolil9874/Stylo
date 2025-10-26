@@ -398,6 +398,16 @@ function setupIpcHandlers() {
     }
     return true;
   });
+
+  // Window resize handler
+  ipcMain.handle('resize-window', async (event, width, height) => {
+    if (mainWindow) {
+      mainWindow.setSize(width, height);
+      console.log(`🖼️  Window resized to: ${width}x${height}`);
+      return true;
+    }
+    return false;
+  });
 }
 
 // MARK: - Error Popup Window
