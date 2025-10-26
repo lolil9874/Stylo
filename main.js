@@ -1,4 +1,4 @@
-const { app, BrowserWindow, screen, clipboard, globalShortcut, ipcMain, shell, Menu } = require('electron');
+const { app, BrowserWindow, screen, clipboard, globalShortcut, ipcMain, shell, Menu, Tray, nativeImage } = require('electron');
 const path = require('path');
 const { exec } = require('child_process');
 const fs = require('fs');
@@ -9,7 +9,10 @@ app.setName('Stylo');
 // Also set the process title for macOS menu bar
 process.title = 'Stylo';
 
+// GPU acceleration enabled for better performance
+
 let mainWindow;
+let tray = null;
 let onboardingWindow = null;
 let errorPopupWindow = null;
 let frontmostAppBundleId = null;
@@ -20,53 +23,56 @@ let isDragging = false;
 function createWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
   
-  // Create the floating window - COMPLETELY NON-ACTIVATING
+  // Create the floating window - MACOS DOCK PERSISTENT CONFIGURATION
   mainWindow = new BrowserWindow({
     width: 200,
     height: 50,
     x: Math.round((width - 200) / 2), // Center horizontally
     y: 50, // Position at the top
     frame: false, // No title bar
-    transparent: true, // Transparency
-    alwaysOnTop: true, // Always on top
-    skipTaskbar: true, // Do not appear in taskbar
+    transparent: false, // Disable transparency to prevent GPU errors and dock disappearing
+    alwaysOnTop: false, // Disable alwaysOnTop to maintain dock presence
+    skipTaskbar: false, // Show in dock
     resizable: false,
-    focusable: false, // NEVER can receive focus
+    focusable: true, // Allow focus to maintain dock presence
+    show: false, // Don't show until ready
+    minimizable: true, // Allow minimizing to dock
+    closable: true, // Allow closing
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js'),
-      disableBlinkFeatures: 'FocusWithoutUserActivation' // Disable focus
+      preload: path.join(__dirname, 'preload.js')
     }
   });
 
   // Load the interface
   mainWindow.loadFile('index.html');
 
-  // Keep the window above other applications - COMPLETELY NON-ACTIVATING
-  mainWindow.setAlwaysOnTop(true, 'screen-saver');
+  // Show window when ready to maintain dock presence
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+    // Ensure app stays in dock
+    app.focus();
+    // Set alwaysOnTop AFTER showing to maintain dock presence
+    setTimeout(() => {
+      mainWindow.setAlwaysOnTop(true, 'screen-saver');
+    }, 100);
+  });
 
-  // Disable automatic focus - NEVER can receive focus
-  mainWindow.setFocusable(false);
-  mainWindow.setIgnoreMouseEvents(false); // Allow clicks but don't activate
+  // Allow focus and interaction
+  mainWindow.setFocusable(true);
+  mainWindow.setIgnoreMouseEvents(false);
 
+  // Create tray icon for easy access
+  createTray();
+  mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  
   // Open DevTools in development mode
   if (process.argv.includes('--dev')) {
     mainWindow.webContents.openDevTools();
   }
 
-  // Handle window dragging
-  mainWindow.webContents.on('before-input-event', (event, input) => {
-    if (input.type === 'mouseDown' && input.button === 'left') {
-      if (input.x >= 0 && input.x <= 200 && input.y >= 0 && input.y <= 50) {
-        dragStart = { x: input.x, y: input.y };
-      }
-    }
-    
-    if (input.type === 'mouseUp') {
-      isDragging = false;
-    }
-  });
+  // Use CSS-based drag regions only; no programmatic dragging
 }
 
 // MARK: - Menu Configuration
@@ -132,6 +138,65 @@ function createMenu() {
   
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
+}
+
+function createTray() {
+  // Create a simple tray icon
+  const iconPath = path.join(__dirname, 'icone', 'pen-tool-plus.svg');
+  const trayIcon = nativeImage.createFromPath(iconPath);
+  
+  tray = new Tray(trayIcon.resize({ width: 16, height: 16 }));
+  
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Stylo',
+      enabled: false
+    },
+    { type: 'separator' },
+    {
+      label: 'Show/Hide',
+      click: () => {
+        if (mainWindow.isVisible()) {
+          mainWindow.hide();
+        } else {
+          mainWindow.show();
+        }
+      }
+    },
+    { type: 'separator' },
+    {
+      label: 'Configuration',
+      submenu: [
+        {
+          label: 'OpenAI',
+          type: 'radio',
+          checked: true,
+          click: () => {
+            // Switch to OpenAI provider
+            console.log('Switched to OpenAI');
+          }
+        },
+        {
+          label: 'OpenRouter',
+          type: 'radio',
+          click: () => {
+            // Switch to OpenRouter provider
+            console.log('Switched to OpenRouter');
+          }
+        }
+      ]
+    },
+    { type: 'separator' },
+    {
+      label: 'Quit',
+      click: () => {
+        app.quit();
+      }
+    }
+  ]);
+  
+  tray.setContextMenu(contextMenu);
+  tray.setToolTip('Stylo - Floating Text Assistant');
 }
 
 // Fonction pour mettre à jour le provider dans config.js
@@ -389,6 +454,11 @@ app.whenReady().then(() => {
   
   // Lancer directement l'application (onboarding supprimé)
   createWindow();
+  
+  // Force app to stay in dock on macOS
+  if (process.platform === 'darwin') {
+    app.dock.show();
+  }
 });
 
 app.on('window-all-closed', () => {
@@ -400,6 +470,44 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
+  } else {
+    // Ensure app stays in dock when activated
+    app.focus();
+    if (mainWindow) {
+      mainWindow.show();
+    }
+  }
+});
+
+// Ensure app stays in dock on macOS
+app.on('browser-window-focus', () => {
+  app.focus();
+});
+
+// Maintain dock presence when window loses focus
+app.on('browser-window-blur', () => {
+  if (process.platform === 'darwin') {
+    // Keep dock visible even when window loses focus
+    app.dock.show();
+  }
+});
+
+// Handle dock clicks to show/hide window
+app.on('dock-click', () => {
+  if (mainWindow) {
+    if (mainWindow.isVisible()) {
+      mainWindow.hide();
+    } else {
+      mainWindow.show();
+      app.focus();
+    }
+  }
+});
+
+// Prevent app from hiding from dock
+app.on('before-quit', () => {
+  if (process.platform === 'darwin') {
+    app.dock.show();
   }
 });
 

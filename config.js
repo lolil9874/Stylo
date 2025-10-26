@@ -21,20 +21,43 @@ const SUPABASE_CONFIG = {
   // Note: Toutes les fonctions utilisent maintenant OpenRouter (Llama 3.3) par défaut !
 };
 
-// Configuration Hugging Face
-const HUGGINGFACE_CONFIG = {
-  apiUrl: 'https://api-inference.huggingface.co/models',
-  models: {
-    promptPlusPlus: 'baconnier/prompt-plus-plus'
-  },
-  // 🔑 Ajoutez votre clé API Hugging Face ici (gratuite sur huggingface.co/settings/tokens)
-  apiKey: 'YOUR_HUGGINGFACE_API_KEY_HERE'
+// Configuration Deepgram
+const DEEPGRAM_CONFIG = {
+  // Remplacez par votre clé API Deepgram
+  apiKey: 'af9416509c6bf8b512b3fdced8233395fbd3e52b',
+  
+  // Configuration de l'API - Optimisée pour sessions longues
+  model: 'nova-3',           // Nova-3 pour meilleure précision
+  language: 'en',             // Anglais pour meilleure reconnaissance
+  sampleRate: 16000,
+  encoding: 'linear16',
+  smartFormat: true,
+  punctuate: true,
+  diarize: false,
+  
+  // Paramètres pour sessions longues
+  interimResults: true,      // Résultats intermédiaires
+  endpointing: 1000,         // Détection de fin après 1s de silence (au lieu de 300ms)
+  vadEvents: true,           // Voice Activity Detection
+  utteranceEndMs: 2000,      // Fin d'énoncé après 2s de silence
+  numerals: true,            // Reconnaître les chiffres
+  profanityFilter: false,    // Pas de filtre de langage
+  redact: false,             // Pas de masquage
+  multichannel: false,       // Mono seulement
+  alternatives: 1,           // Une seule alternative
+  search: [],                // Pas de recherche
+  replace: [],               // Pas de remplacement
+  keywords: [],              // Pas de mots-clés spécifiques
+  keywordBoost: 'off'       // Pas de boost de mots-clés
 };
 
 // Configuration de l'app
 const APP_CONFIG = {
-  // Timeout pour les requêtes réseau (en ms)
-  networkTimeout: 10000,
+  // Timeout pour les requêtes réseau (en ms) - AUGMENTÉ pour sessions longues
+  networkTimeout: 30000,        // 30 secondes au lieu de 10
+  
+  // Timeout spécifique pour Deepgram (en ms)
+  deepgramTimeout: 60000,       // 60 secondes pour les sessions vocales
   
   // Délai d'attente après réactivation de l'app (en ms)
   reactivationDelay: 200,
@@ -44,6 +67,14 @@ const APP_CONFIG = {
   
   // Délai d'attente pour le collage (en ms)
   pasteDelay: 100,
+  
+  // Paramètres pour sessions vocales longues
+  voiceSession: {
+    maxDuration: 600000,         // 10 minutes maximum
+    keepAliveInterval: 30000,    // Ping toutes les 30 secondes
+    reconnectDelay: 2000,        // 2 secondes avant reconnexion
+    silenceThreshold: 2000       // 2 secondes de silence avant fin
+  },
   
   // 🎯 CHOIX DU PROVIDER POUR TOUS LES BOUTONS
   // Options: 
@@ -58,9 +89,10 @@ const APP_CONFIG = {
 
 // Exporter la configuration
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { SUPABASE_CONFIG, HUGGINGFACE_CONFIG, APP_CONFIG };
+  module.exports = { SUPABASE_CONFIG, APP_CONFIG, DEEPGRAM_CONFIG };
 } else {
   window.SUPABASE_CONFIG = SUPABASE_CONFIG;
   window.HUGGINGFACE_CONFIG = HUGGINGFACE_CONFIG;
   window.APP_CONFIG = APP_CONFIG;
+  window.DEEPGRAM_CONFIG = DEEPGRAM_CONFIG;
 }

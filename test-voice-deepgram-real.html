@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Voice avec Deepgram WebSocket</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e5e5e5;
+            border-radius: 8px;
+        }
+        
+        .test-section h2 {
+            color: #666;
+            margin-top: 0;
+        }
+        
+        .voice-button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+        
+        .voice-button:hover {
+            background: #0056CC;
+            transform: translateY(-2px);
+        }
+        
+        .voice-button.recording {
+            background: #FF3B30;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .status {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        
+        .status.listening {
+            background: #E3F2FD;
+            color: #1976D2;
+            border: 1px solid #BBDEFB;
+        }
+        
+        .status.processing {
+            background: #FFF3E0;
+            color: #F57C00;
+            border: 1px solid #FFE0B2;
+        }
+        
+        .status.success {
+            background: #E8F5E8;
+            color: #2E7D32;
+            border: 1px solid #C8E6C9;
+        }
+        
+        .status.error {
+            background: #FFEBEE;
+            color: #C62828;
+            border: 1px solid #FFCDD2;
+        }
+        
+        .transcript {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+            min-height: 100px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        
+        .transcript .interim {
+            color: #666;
+            font-style: italic;
+        }
+        
+        .transcript .final {
+            color: #000;
+            font-weight: 500;
+        }
+        
+        .enhanced-text {
+            background: #e8f5e8;
+            border: 1px solid #c8e6c9;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+            min-height: 100px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        
+        .input-fields {
+            display: grid;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .input-field {
+            padding: 12px;
+            border: 2px solid #e5e5e5;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .input-field:focus {
+            outline: none;
+            border-color: #007AFF;
+        }
+        
+        .input-field.highlight {
+            border-color: #4CAF50;
+            background: #f0f8f0;
+            animation: highlight 2s ease;
+        }
+        
+        @keyframes highlight {
+            0% { background: #4CAF50; color: white; }
+            100% { background: #f0f8f0; color: black; }
+        }
+        
+        .log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+        }
+        
+        .log-entry.info { color: #4FC3F7; }
+        .log-entry.success { color: #81C784; }
+        .log-entry.error { color: #F48FB1; }
+        .log-entry.warning { color: #FFB74D; }
+        
+        .config-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        
+        .config-section input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Test Voice avec Deepgram WebSocket</h1>
+        
+        <div class="config-section">
+            <h3>Configuration Deepgram</h3>
+            <input type="text" id="api-key" placeholder="Votre clé API Deepgram" value="af9416509c6bf8b512b3fdced8233395fbd3e52b">
+            <input type="text" id="language" placeholder="Langue (fr, en, etc.)" value="fr">
+        </div>
+        
+        <div class="test-section">
+            <h2>1. Contrôles Voice</h2>
+            <button id="voice-btn" class="voice-button">
+                🎤 Cliquer pour commencer l'enregistrement
+            </button>
+            <div id="status" class="status" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>2. Transcription en temps réel (Deepgram)</h2>
+            <div id="transcript" class="transcript">Votre parole apparaîtra ici...</div>
+        </div>
+        
+        <div class="test-section">
+            <h2>3. Texte amélioré</h2>
+            <div id="enhanced" class="enhanced-text">Le texte amélioré apparaîtra ici...</div>
+        </div>
+        
+        <div class="test-section">
+            <h2>4. Champs de test (où le texte sera collé)</h2>
+            <div class="input-fields">
+                <input type="text" class="input-field" placeholder="Champ de texte 1" id="input1">
+                <textarea class="input-field" placeholder="Zone de texte 2" id="textarea1" rows="3"></textarea>
+                <input type="text" class="input-field" placeholder="Champ de texte 3" id="input2">
+                <div contenteditable="true" class="input-field" placeholder="Zone éditable" id="editable1">
+                    Zone de texte éditable
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>5. Log de débogage</h2>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        class DeepgramVoiceTest {
+            constructor() {
+                this.isRecording = false;
+                this.deepgramSocket = null;
+                this.audioContext = null;
+                this.processor = null;
+                this.stream = null;
+                this.finalText = '';
+                this.interimText = '';
+                
+                this.voiceBtn = document.getElementById('voice-btn');
+                this.status = document.getElementById('status');
+                this.transcript = document.getElementById('transcript');
+                this.enhanced = document.getElementById('enhanced');
+                this.log = document.getElementById('log');
+                
+                this.setupEventListeners();
+                this.log('🚀 Test Deepgram Voice initialisé', 'info');
+            }
+            
+            setupEventListeners() {
+                this.voiceBtn.addEventListener('click', () => {
+                    if (this.isRecording) {
+                        this.stopRecording();
+                    } else {
+                        this.startRecording();
+                    }
+                });
+            }
+            
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const entry = document.createElement('div');
+                entry.className = `log-entry ${type}`;
+                entry.textContent = `[${timestamp}] ${message}`;
+                this.log.appendChild(entry);
+                this.log.scrollTop = this.log.scrollHeight;
+                console.log(`[${type.toUpperCase()}] ${message}`);
+            }
+            
+            async startRecording() {
+                try {
+                    this.log('🎤 Démarrage de l\'enregistrement avec Deepgram...', 'info');
+                    
+                    // Demander l'accès au microphone
+                    this.stream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            sampleRate: 16000,
+                            channelCount: 1,
+                            echoCancellation: true,
+                            noiseSuppression: true
+                        }
+                    });
+                    
+                    this.log('✅ Accès microphone accordé', 'success');
+                    
+                    // Initialiser la connexion Deepgram
+                    await this.initializeDeepgramConnection();
+                    
+                    // Démarrer le streaming audio
+                    this.startAudioStreaming();
+                    
+                    this.isRecording = true;
+                    this.updateUI('listening', '🎤 Écoute en cours... Parlez maintenant');
+                    this.voiceBtn.textContent = '⏹️ Arrêter l\'enregistrement';
+                    this.voiceBtn.classList.add('recording');
+                    
+                } catch (error) {
+                    this.log(`❌ Erreur: ${error.message}`, 'error');
+                    this.updateUI('error', `Erreur: ${error.message}`);
+                    this.resetUI();
+                }
+            }
+            
+            async initializeDeepgramConnection() {
+                const apiKey = document.getElementById('api-key').value;
+                const language = document.getElementById('language').value;
+                
+                if (!apiKey) {
+                    throw new Error('Clé API Deepgram requise');
+                }
+                
+                const deepgramUrl = `wss://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&punctuate=true&diarize=false&language=${language}&encoding=linear16&sample_rate=16000`;
+                
+                this.deepgramSocket = new WebSocket(deepgramUrl, ['token', apiKey]);
+                
+                this.deepgramSocket.onopen = () => {
+                    this.log('🔗 Connexion Deepgram WebSocket établie', 'success');
+                };
+                
+                this.deepgramSocket.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    if (data.channel && data.channel.alternatives && data.channel.alternatives[0]) {
+                        const transcript = data.channel.alternatives[0].transcript;
+                        if (transcript) {
+                            this.updateTranscript(transcript, data.is_final);
+                        }
+                    }
+                };
+                
+                this.deepgramSocket.onerror = (error) => {
+                    this.log(`❌ Erreur WebSocket Deepgram: ${error}`, 'error');
+                    this.updateUI('error', 'Erreur de connexion Deepgram');
+                };
+                
+                this.deepgramSocket.onclose = () => {
+                    this.log('🔌 Connexion Deepgram fermée', 'info');
+                };
+            }
+            
+            startAudioStreaming() {
+                this.audioContext = new AudioContext({ sampleRate: 16000 });
+                const source = this.audioContext.createMediaStreamSource(this.stream);
+                this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+                
+                this.processor.onaudioprocess = (event) => {
+                    if (this.deepgramSocket && this.deepgramSocket.readyState === WebSocket.OPEN) {
+                        const audioData = event.inputBuffer.getChannelData(0);
+                        const pcmData = this.convertFloat32ToPCM16(audioData);
+                        this.deepgramSocket.send(pcmData);
+                    }
+                };
+                
+                source.connect(this.processor);
+                this.processor.connect(this.audioContext.destination);
+                
+                this.log('🎵 Streaming audio démarré', 'info');
+            }
+            
+            convertFloat32ToPCM16(float32Array) {
+                const buffer = new ArrayBuffer(float32Array.length * 2);
+                const view = new DataView(buffer);
+                let offset = 0;
+                for (let i = 0; i < float32Array.length; i++, offset += 2) {
+                    let s = Math.max(-1, Math.min(1, float32Array[i]));
+                    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+                }
+                return buffer;
+            }
+            
+            updateTranscript(transcript, isFinal) {
+                if (isFinal) {
+                    this.finalText += transcript + ' ';
+                    this.interimText = '';
+                } else {
+                    this.interimText = transcript;
+                }
+                
+                // Afficher la transcription
+                const displayText = this.finalText + this.interimText;
+                this.transcript.innerHTML = `<span class="final">${this.finalText}</span><span class="interim">${this.interimText}</span>`;
+                
+                this.log(`📝 Transcription: "${transcript}" (${isFinal ? 'final' : 'interim'})`, 'info');
+            }
+            
+            stopRecording() {
+                this.log('⏹️ Arrêt de l\'enregistrement...', 'info');
+                
+                // Fermer la connexion Deepgram
+                if (this.deepgramSocket) {
+                    this.deepgramSocket.close();
+                }
+                
+                // Arrêter le streaming audio
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                }
+                
+                if (this.audioContext) {
+                    this.audioContext.close();
+                }
+                
+                // Traiter le texte final
+                const fullTranscript = this.finalText.trim();
+                if (fullTranscript) {
+                    this.log('✅ Transcription finale reçue', 'success');
+                    this.processTranscript(fullTranscript);
+                } else {
+                    this.log('⚠️ Aucune transcription reçue', 'warning');
+                    this.resetUI();
+                }
+            }
+            
+            async processTranscript(text) {
+                try {
+                    this.updateUI('processing', '🤖 Amélioration du texte en cours...');
+                    this.log('🔄 Appel de l\'API d\'amélioration...', 'info');
+                    
+                    // Appeler l'API d'amélioration
+                    const enhancedText = await this.callEnhanceAPI(text);
+                    
+                    this.enhanced.textContent = enhancedText;
+                    this.log('✅ Texte amélioré reçu', 'success');
+                    
+                    // Coller dans le dernier champ
+                    await this.pasteToLastInput(enhancedText);
+                    
+                    this.updateUI('success', '✅ Texte amélioré et collé avec succès!');
+                    
+                } catch (error) {
+                    this.log(`❌ Erreur lors du traitement: ${error.message}`, 'error');
+                    this.updateUI('error', `Erreur: ${error.message}`);
+                }
+            }
+            
+            async callEnhanceAPI(text) {
+                const enhanceUrl = 'https://vkyfdunlbpzwxryqoype.supabase.co/functions/v1/enhance-promptv2';
+                
+                // Utiliser une clé API de test (vous devrez la remplacer par la vraie)
+                const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZreWZkdW5sYnB6d3J5cW95cGUiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczNDQ5NzQwMCwiZXhwIjoyMDUwMDczNDAwfQ.placeholder';
+                
+                const response = await fetch(enhanceUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${anonKey}`
+                    },
+                    body: JSON.stringify({
+                        input: text,
+                        text: text,
+                        mode: 'voice',
+                        profile: {
+                            role: 'user',
+                            audience: 'general',
+                            tone: 'professional',
+                            language: 'auto',
+                            constraints: []
+                        }
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                return data.enhanced || data.output || data.result || data.enhanced_text || 'Texte amélioré non reçu';
+            }
+            
+            async pasteToLastInput(text) {
+                try {
+                    // Trouver tous les champs d'entrée
+                    const inputs = document.querySelectorAll('input[type="text"], textarea, [contenteditable="true"]');
+                    const lastInput = inputs[inputs.length - 1];
+                    
+                    if (lastInput) {
+                        // Mettre en surbrillance le champ
+                        lastInput.classList.add('highlight');
+                        setTimeout(() => lastInput.classList.remove('highlight'), 2000);
+                        
+                        // Coller le texte
+                        if (lastInput.contentEditable === 'true') {
+                            lastInput.textContent = text;
+                        } else {
+                            lastInput.value = text;
+                        }
+                        
+                        // Déclencher les événements
+                        lastInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        lastInput.dispatchEvent(new Event('change', { bubbles: true }));
+                        
+                        this.log(`✅ Texte collé dans: ${lastInput.id || lastInput.tagName}`, 'success');
+                    } else {
+                        this.log('⚠️ Aucun champ d\'entrée trouvé', 'warning');
+                    }
+                } catch (error) {
+                    this.log(`❌ Erreur lors du collage: ${error.message}`, 'error');
+                }
+            }
+            
+            updateUI(type, message) {
+                this.status.textContent = message;
+                this.status.className = `status ${type}`;
+                this.status.style.display = 'block';
+            }
+            
+            resetUI() {
+                this.isRecording = false;
+                this.voiceBtn.textContent = '🎤 Cliquer pour commencer l\'enregistrement';
+                this.voiceBtn.classList.remove('recording');
+                this.status.style.display = 'none';
+                this.finalText = '';
+                this.interimText = '';
+            }
+        }
+        
+        // Démarrer le test quand la page est chargée
+        document.addEventListener('DOMContentLoaded', () => {
+            new DeepgramVoiceTest();
+        });
+    </script>
+</body>
+</html>

@@ -18,14 +18,14 @@ body {
 
 /* Floating panel with liquid glass effect - toolbar en haut */
 .floating-panel {
-    width: 100%;
-    height: 100vh;
+    width: 200px;
+    height: 50px;
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
+    background: rgba(255, 255, 255, 0.95);
+    /* backdrop-filter: blur(20px); */
+    /* -webkit-backdrop-filter: blur(20px); */
     border-radius: 8px;
     position: relative;
     cursor: move;
@@ -37,16 +37,19 @@ body {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Voice popup doesn't affect the main toolbar - it extends below */
+
 /* Hover effect for floating panel */
 .floating-panel:hover {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 1);
+    /* backdrop-filter: blur(25px); */
+    /* -webkit-backdrop-filter: blur(25px); */
+    border: 1px solid rgba(255, 255, 255, 0.5);
     box-shadow: 
         0 8px 30px rgba(0, 0, 0, 0.15),
-        inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    transform: translateY(-2px);
+        0 0 0 1px rgba(255, 255, 255, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    transform: translateY(-2px) scale(1.02);
 }
 
 /* Bordure avec dégradé angulaire comme dans le SVG */
@@ -92,6 +95,7 @@ body {
     -webkit-app-region: no-drag;
     position: relative;
     z-index: 2;
+    height: 50px; /* Fixed height for proper positioning */
 }
 
 /* Inline status line under the buttons */
@@ -148,10 +152,36 @@ body {
     background: rgba(0, 0, 0, 0.08);
 }
 
-/* Animation de clic */
+/* Animation de clic - disabled */
 .action-button:active {
-    transform: translateY(0) scale(0.95);
-    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(0) scale(1);
+    transition: none;
+}
+
+/* Smooth icon transition */
+.action-button .button-icon {
+    transition: all 0.3s ease;
+}
+
+/* Recording state */
+.action-button.recording {
+    background: #ef4444;
+    animation: recordingPulse 1.5s infinite;
+}
+
+.action-button.recording .button-icon {
+    filter: brightness(0) invert(1); /* Make icon white */
+}
+
+@keyframes recordingPulse {
+    0%, 100% { 
+        opacity: 1; 
+        transform: scale(1);
+    }
+    50% { 
+        opacity: 0.8; 
+        transform: scale(1.05);
+    }
 }
 
 /* Active state (selected button) */
@@ -174,8 +204,7 @@ body {
     width: 22px;
     height: 22px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    /* Inactive: Black 30% opacity */
-    opacity: 0.3;
+    opacity: 1;
 }
 
 .action-button.active .button-icon {
@@ -216,7 +245,7 @@ body {
     left: -1px;
     right: -1px;
     bottom: -1px;
-    background: rgba(0, 0, 0, 0.1);
+    background: rgba(0, 0, 0, 0.08);
     border-radius: 8px;
     z-index: -1;
     animation: subtlePulse 2s infinite;
@@ -496,6 +525,8 @@ body {
 .permission-content button:hover {
     background: #2563eb;
 }
+
+
 
 /* Responsive pour différentes tailles d'écran */
 @media (max-width: 480px) {

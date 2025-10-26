@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Voice Simple</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #e5e5e5;
+            border-radius: 8px;
+        }
+        
+        .voice-button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+            width: 100%;
+        }
+        
+        .voice-button:hover {
+            background: #0056CC;
+        }
+        
+        .voice-button.recording {
+            background: #FF3B30;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .status {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        
+        .status.info { background: #E3F2FD; color: #1976D2; }
+        .status.success { background: #E8F5E8; color: #2E7D32; }
+        .status.error { background: #FFEBEE; color: #C62828; }
+        .status.warning { background: #FFF3E0; color: #F57C00; }
+        
+        .log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+        }
+        
+        .log-entry.info { color: #4FC3F7; }
+        .log-entry.success { color: #81C784; }
+        .log-entry.error { color: #F48FB1; }
+        .log-entry.warning { color: #FFB74D; }
+        
+        .browser-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e5e5;
+            border-radius: 6px;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        
+        .input-field.highlight {
+            border-color: #4CAF50;
+            background: #f0f8f0;
+            animation: highlight 2s ease;
+        }
+        
+        @keyframes highlight {
+            0% { background: #4CAF50; color: white; }
+            100% { background: #f0f8f0; color: black; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Test Voice Simple</h1>
+        
+        <div class="browser-info">
+            <h3>Informations du Navigateur</h3>
+            <p><strong>HTTPS:</strong> <span id="https-status"></span></p>
+            <p><strong>Speech Recognition:</strong> <span id="speech-support"></span></p>
+            <p><strong>MediaDevices:</strong> <span id="media-devices"></span></p>
+        </div>
+        
+        <div class="test-section">
+            <h3>Configuration</h3>
+            <input type="text" id="deepgram-key" placeholder="Clé API Deepgram" value="af9416509c6bf8b512b3fdced8233395fbd3e52b" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+            <input type="text" id="deepgram-lang" placeholder="Langue (fr, en, etc.)" value="fr" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+            <input type="text" id="supabase-key" placeholder="Clé Supabase (optionnel)" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZreWZkdW5sYnB6d3J5cW95cGUiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczNDQ5NzQwMCwiZXhwIjoyMDUwMDczNDAwfQ.placeholder" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+        </div>
+        
+        <div class="test-section">
+            <h3>Test de Reconnaissance Vocale (Navigateur)</h3>
+            <button id="voice-btn" class="voice-button">🎤 Test Navigateur</button>
+            <div id="status" class="status" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test de Reconnaissance Vocale (Deepgram)</h3>
+            <button id="deepgram-btn" class="voice-button">🎙️ Test Deepgram</button>
+            <div id="deepgram-status" class="status" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test d'Amélioration de Prompt</h3>
+            <input type="text" id="manual-text" placeholder="Tapez du texte à améliorer" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+            <button id="enhance-btn" class="voice-button">🤖 Améliorer le Texte</button>
+            <button id="copy-btn" class="voice-button">📋 Copier dans Presse-papier</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>Transcription</h3>
+            <div id="transcript" class="log">Votre parole apparaîtra ici...</div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Texte Amélioré</h3>
+            <div id="enhanced-text" class="log" style="background: #e8f5e8; border: 1px solid #c8e6c9;">Le texte amélioré apparaîtra ici...</div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Champ de Test</h3>
+            <input type="text" class="input-field" placeholder="Le texte sera collé ici" id="test-input">
+        </div>
+        
+        <div class="test-section">
+            <h3>Log de Débogage</h3>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let isRecording = false;
+        let recognition = null;
+        let deepgramSocket = null;
+        let audioContext = null;
+        let processor = null;
+        let stream = null;
+        let finalText = '';
+        let interimText = '';
+        
+        // Fonctions utilitaires
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${timestamp}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        function showStatus(type, message) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+        }
+        
+        function updateButton(text, recording = false) {
+            const btn = document.getElementById('voice-btn');
+            btn.textContent = text;
+            if (recording) {
+                btn.classList.add('recording');
+            } else {
+                btn.classList.remove('recording');
+            }
+        }
+        
+        // Test de reconnaissance vocale
+        function startVoiceTest() {
+            log('🎤 Démarrage du test de reconnaissance vocale...', 'info');
+            
+            // Vérifier le support
+            if (!('webkitSpeechRecognition' in window)) {
+                const error = 'Reconnaissance vocale non supportée. Utilisez Chrome ou Edge.';
+                log(error, 'error');
+                showStatus('error', error);
+                return;
+            }
+            
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+                const error = 'HTTPS requis pour la reconnaissance vocale.';
+                log(error, 'error');
+                showStatus('error', error);
+                return;
+            }
+            
+            try {
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = true;
+                recognition.lang = 'fr-FR';
+                
+                recognition.onstart = function() {
+                    log('✅ Reconnaissance vocale démarrée', 'success');
+                    showStatus('success', '🎤 Écoute en cours... Parlez maintenant');
+                    updateButton('⏹️ Arrêter', true);
+                    isRecording = true;
+                };
+                
+                recognition.onresult = function(event) {
+                    let finalTranscript = '';
+                    let interimTranscript = '';
+                    
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript;
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+                    
+                    const displayText = finalTranscript + interimTranscript;
+                    document.getElementById('transcript').textContent = displayText;
+                    
+                    if (finalTranscript) {
+                        log(`📝 Transcription finale: "${finalTranscript}"`, 'success');
+                        // Améliorer le prompt automatiquement
+                        enhancePrompt(finalTranscript);
+                    } else if (interimTranscript) {
+                        log(`📝 Transcription partielle: "${interimTranscript}"`, 'info');
+                    }
+                };
+                
+                recognition.onerror = function(event) {
+                    log(`❌ Erreur: ${event.error}`, 'error');
+                    let errorMsg = 'Erreur de reconnaissance vocale';
+                    switch(event.error) {
+                        case 'no-speech':
+                            errorMsg = 'Aucune parole détectée';
+                            break;
+                        case 'audio-capture':
+                            errorMsg = 'Microphone non accessible';
+                            break;
+                        case 'not-allowed':
+                            errorMsg = 'Accès microphone refusé';
+                            break;
+                    }
+                    showStatus('error', errorMsg);
+                    resetButton();
+                };
+                
+                recognition.onend = function() {
+                    log('🔚 Reconnaissance vocale terminée', 'info');
+                    resetButton();
+                };
+                
+                recognition.start();
+                log('🚀 Démarrage de la reconnaissance vocale...', 'info');
+                
+            } catch (error) {
+                log(`❌ Erreur: ${error.message}`, 'error');
+                showStatus('error', error.message);
+                resetButton();
+            }
+        }
+        
+        function stopVoiceTest() {
+            if (recognition) {
+                recognition.stop();
+            }
+            resetButton();
+        }
+        
+        function resetButton() {
+            updateButton('🎤 Cliquer pour commencer', false);
+            isRecording = false;
+        }
+        
+        function pasteToInput(text) {
+            const input = document.getElementById('test-input');
+            input.value = text;
+            input.classList.add('highlight');
+            setTimeout(() => input.classList.remove('highlight'), 2000);
+            log('✅ Texte collé dans le champ', 'success');
+        }
+        
+        // Fonction d'amélioration de prompt
+        async function enhancePrompt(text) {
+            try {
+                log('🤖 Amélioration du prompt en cours...', 'info');
+                showDeepgramStatus('info', '🤖 Amélioration du prompt...');
+                
+                const supabaseKey = document.getElementById('supabase-key').value;
+                const enhanceUrl = 'https://vkyfdunlbpzwxryqoype.supabase.co/functions/v1/enhance-promptv2';
+                
+                const response = await fetch(enhanceUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${supabaseKey}`
+                    },
+                    body: JSON.stringify({
+                        input: text,
+                        text: text,
+                        mode: 'voice',
+                        profile: {
+                            role: 'user',
+                            audience: 'general',
+                            tone: 'professional',
+                            language: 'auto',
+                            constraints: []
+                        }
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const enhancedText = data.enhanced || data.output || data.result || data.enhanced_text || text;
+                
+                // Afficher le texte amélioré
+                document.getElementById('enhanced-text').textContent = enhancedText;
+                log('✅ Texte amélioré reçu', 'success');
+                
+                // Coller le texte amélioré dans l'input
+                pasteToInput(enhancedText);
+                
+                showDeepgramStatus('success', '✅ Texte amélioré et collé!');
+                
+                return enhancedText;
+                
+            } catch (error) {
+                log(`❌ Erreur amélioration: ${error.message}`, 'error');
+                showDeepgramStatus('error', `Erreur amélioration: ${error.message}`);
+                
+                // En cas d'erreur, copier le texte original dans le presse-papier
+                await copyToClipboard(text);
+                log('📋 Texte original copié dans le presse-papier', 'info');
+                
+                return text;
+            }
+        }
+        
+        // Fonction pour copier dans le presse-papier
+        async function copyToClipboard(text) {
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                    log('✅ Texte copié dans le presse-papier', 'success');
+                } else {
+                    // Fallback pour les navigateurs plus anciens
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-999999px';
+                    textArea.style.top = '-999999px';
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    document.execCommand('copy');
+                    textArea.remove();
+                    log('✅ Texte copié dans le presse-papier (fallback)', 'success');
+                }
+            } catch (error) {
+                log(`❌ Erreur copie presse-papier: ${error.message}`, 'error');
+            }
+        }
+        
+        // Fonctions Deepgram
+        async function startDeepgramTest() {
+            log('🎙️ Démarrage du test Deepgram...', 'info');
+            
+            const apiKey = document.getElementById('deepgram-key').value;
+            const language = document.getElementById('deepgram-lang').value;
+            
+            if (!apiKey) {
+                const error = 'Clé API Deepgram requise';
+                log(error, 'error');
+                showDeepgramStatus('error', error);
+                return;
+            }
+            
+            try {
+                // Demander l'accès au microphone
+                stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        sampleRate: 16000,
+                        channelCount: 1,
+                        echoCancellation: true,
+                        noiseSuppression: true
+                    }
+                });
+                
+                log('✅ Accès microphone accordé', 'success');
+                
+                // Initialiser la connexion Deepgram
+                await initializeDeepgramConnection(apiKey, language);
+                
+                // Démarrer le streaming audio
+                startAudioStreaming();
+                
+                isRecording = true;
+                showDeepgramStatus('success', '🎙️ Deepgram actif - Parlez maintenant');
+                updateDeepgramButton('⏹️ Arrêter Deepgram', true);
+                
+            } catch (error) {
+                log(`❌ Erreur Deepgram: ${error.message}`, 'error');
+                showDeepgramStatus('error', `Erreur: ${error.message}`);
+                resetDeepgramButton();
+            }
+        }
+        
+        async function initializeDeepgramConnection(apiKey, language) {
+            const deepgramUrl = `wss://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&punctuate=true&diarize=false&language=${language}&encoding=linear16&sample_rate=16000`;
+            
+            deepgramSocket = new WebSocket(deepgramUrl, ['token', apiKey]);
+            
+            deepgramSocket.onopen = function() {
+                log('🔗 Connexion Deepgram WebSocket établie', 'success');
+            };
+            
+            deepgramSocket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.channel && data.channel.alternatives && data.channel.alternatives[0]) {
+                    const transcript = data.channel.alternatives[0].transcript;
+                    if (transcript) {
+                        updateDeepgramTranscript(transcript, data.is_final);
+                    }
+                }
+            };
+            
+            deepgramSocket.onerror = function(error) {
+                log(`❌ Erreur WebSocket Deepgram: ${error}`, 'error');
+                showDeepgramStatus('error', 'Erreur de connexion Deepgram');
+            };
+            
+            deepgramSocket.onclose = function() {
+                log('🔌 Connexion Deepgram fermée', 'info');
+            };
+        }
+        
+        function startAudioStreaming() {
+            audioContext = new AudioContext({ sampleRate: 16000 });
+            const source = audioContext.createMediaStreamSource(stream);
+            processor = audioContext.createScriptProcessor(4096, 1, 1);
+            
+            processor.onaudioprocess = function(event) {
+                if (deepgramSocket && deepgramSocket.readyState === WebSocket.OPEN) {
+                    const audioData = event.inputBuffer.getChannelData(0);
+                    const pcmData = convertFloat32ToPCM16(audioData);
+                    deepgramSocket.send(pcmData);
+                }
+            };
+            
+            source.connect(processor);
+            processor.connect(audioContext.destination);
+            
+            log('🎵 Streaming audio Deepgram démarré', 'info');
+        }
+        
+        function convertFloat32ToPCM16(float32Array) {
+            const buffer = new ArrayBuffer(float32Array.length * 2);
+            const view = new DataView(buffer);
+            let offset = 0;
+            for (let i = 0; i < float32Array.length; i++, offset += 2) {
+                let s = Math.max(-1, Math.min(1, float32Array[i]));
+                view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+            }
+            return buffer;
+        }
+        
+        function updateDeepgramTranscript(transcript, isFinal) {
+            if (isFinal) {
+                finalText += transcript + ' ';
+                interimText = '';
+                
+                // Afficher la transcription finale
+                const displayText = finalText + interimText;
+                document.getElementById('transcript').textContent = displayText;
+                
+                log(`📝 Deepgram final: "${transcript}"`, 'success');
+                
+                // Améliorer le prompt automatiquement
+                enhancePrompt(finalText.trim());
+                
+            } else {
+                interimText = transcript;
+                
+                // Afficher la transcription partielle
+                const displayText = finalText + interimText;
+                document.getElementById('transcript').textContent = displayText;
+                
+                log(`📝 Deepgram interim: "${transcript}"`, 'info');
+            }
+        }
+        
+        function stopDeepgramTest() {
+            log('⏹️ Arrêt du test Deepgram...', 'info');
+            
+            if (deepgramSocket) {
+                deepgramSocket.close();
+            }
+            
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            
+            if (audioContext) {
+                audioContext.close();
+            }
+            
+            resetDeepgramButton();
+        }
+        
+        function showDeepgramStatus(type, message) {
+            const statusDiv = document.getElementById('deepgram-status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+        }
+        
+        function updateDeepgramButton(text, recording = false) {
+            const btn = document.getElementById('deepgram-btn');
+            btn.textContent = text;
+            if (recording) {
+                btn.classList.add('recording');
+            } else {
+                btn.classList.remove('recording');
+            }
+        }
+        
+        function resetDeepgramButton() {
+            updateDeepgramButton('🎙️ Test Deepgram', false);
+            isRecording = false;
+            finalText = '';
+            interimText = '';
+        }
+        
+        // Initialisation
+        function init() {
+            // Afficher les informations du navigateur
+            document.getElementById('https-status').textContent = 
+                location.protocol === 'https:' ? '✅ Oui' : '❌ Non (requis)';
+            document.getElementById('speech-support').textContent = 
+                'webkitSpeechRecognition' in window ? '✅ Supporté' : '❌ Non supporté';
+            document.getElementById('media-devices').textContent = 
+                'mediaDevices' in navigator ? '✅ Supporté' : '❌ Non supporté';
+            
+            // Event listener pour le bouton navigateur
+            document.getElementById('voice-btn').addEventListener('click', function() {
+                if (isRecording) {
+                    stopVoiceTest();
+                } else {
+                    startVoiceTest();
+                }
+            });
+            
+            // Event listener pour le bouton Deepgram
+            document.getElementById('deepgram-btn').addEventListener('click', function() {
+                if (isRecording) {
+                    stopDeepgramTest();
+                } else {
+                    startDeepgramTest();
+                }
+            });
+            
+            // Event listener pour le bouton d'amélioration manuelle
+            document.getElementById('enhance-btn').addEventListener('click', async function() {
+                const text = document.getElementById('manual-text').value.trim();
+                if (text) {
+                    await enhancePrompt(text);
+                } else {
+                    log('❌ Veuillez entrer du texte à améliorer', 'error');
+                }
+            });
+            
+            // Event listener pour le bouton de copie
+            document.getElementById('copy-btn').addEventListener('click', async function() {
+                const text = document.getElementById('manual-text').value.trim();
+                if (text) {
+                    await copyToClipboard(text);
+                } else {
+                    log('❌ Veuillez entrer du texte à copier', 'error');
+                }
+            });
+            
+            log('🚀 Test Voice initialisé', 'info');
+        }
+        
+        // Démarrer quand la page est chargée
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
