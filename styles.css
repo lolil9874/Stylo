@@ -16,7 +16,7 @@ body {
     -webkit-user-select: none;
 }
 
-/* Floating panel with liquid glass effect */
+/* Floating panel with liquid glass effect - toolbar en haut */
 .floating-panel {
     width: 100%;
     height: 100vh;
@@ -80,12 +80,15 @@ body {
     -webkit-app-region: drag;
 }
 
-/* Button container */
+/* Button container - centré verticalement à l'intérieur de la toolbar */
 .button-container {
     display: flex;
     gap: 12px;
-    padding: 0 12px;
+    padding: 12px 0;
     align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 50px;
     -webkit-app-region: no-drag;
     position: relative;
     z-index: 2;
@@ -527,7 +530,7 @@ body {
 /* FILTER MODAL (Panneau contextuel)            */
 /* ============================================= */
 
-/* Modal principal - TRANSPARENT comme la toolbar */
+/* Modal principal - Transparent, intégré à la toolbar */
 .filter-modal {
     position: fixed;
     top: 50px; /* Juste après la toolbar */
@@ -536,67 +539,83 @@ body {
     width: 200px;
     margin: 0 auto;
 
-    /* Complètement transparent - pas de fond */
+    /* Pas de fond - complètement transparent */
     background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     border: none;
+    border-radius: 0;
     box-shadow: none;
 
-    /* Espacement minimaliste */
-    padding: 8px 0;
+    /* Espacement avec padding à gauche */
+    padding: 8px 0 8px 6px;
 
-    /* Animation d'apparition */
+    /* Animation d'apparition fluide */
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(-20px) scale(0.95);
     max-height: 0;
     pointer-events: none;
     overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 350ms cubic-bezier(0.23, 1, 0.32, 1);
     z-index: 100;
 }
 
 .filter-modal.show {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
     max-height: 280px; /* Hauteur visible: 330px (fenêtre) - 50px (toolbar) = 280px */
     pointer-events: auto !important;
     overflow-y: auto !important; /* Auto permet le scroll quand nécessaire */
     overflow-x: hidden; /* Empêche le scroll horizontal */
     
-    /* Scroll rapide et réactif */
+    /* Scroll très rapide et réactif */
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
     
-    /* Style de scrollbar personnalisé pour macOS */
-    scrollbar-width: thin; /* Thin pour être discret */
-    scrollbar-color: rgba(0, 0, 0, 0.3) rgba(0, 0, 0, 0.05);
+    /* CACHER la scrollbar mais garder la fonctionnalité de scroll */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+    
+    /* Animation d'ouverture fluide */
+    animation: slideInPanel 350ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
 }
 
-/* Webkit scrollbar styling (Chrome, Safari, Electron) - visible et utilisable */
+/* Animation d'ouverture du panneau */
+@keyframes slideInPanel {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Cacher complètement la scrollbar pour Chrome/Safari/Edge */
 .filter-modal.show::-webkit-scrollbar {
-    width: 8px; /* Largeur optimale */
-    background: transparent;
+    display: none;
+    width: 0;
+    height: 0;
 }
 
-.filter-modal.show::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 4px;
-    margin: 2px 0;
-}
-
-.filter-modal.show::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 4px;
-    min-height: 30px; /* Hauteur minimale pour être facilement saisissable */
-}
-
-.filter-modal.show::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.5);
-    cursor: pointer;
-}
-
-.filter-modal.show::-webkit-scrollbar-thumb:active {
-    background: rgba(0, 0, 0, 0.7);
+/* Indicateur visuel discret qu'il y a plus de contenu en bas */
+.filter-modal.show::after {
+    content: '';
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 20px;
+    background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(0, 0, 0, 0.05) 100%
+    );
+    pointer-events: none;
+    z-index: 10;
+    display: block;
 }
 
 /* Forcer tous les éléments enfants cliquables à recevoir les événements */
@@ -615,10 +634,10 @@ body {
     display: none;
 }
 
-/* Contenu du modal - scrollable */
+/* Contenu du modal - scrollable avec z-index inférieur à la scrollbar */
 .filter-content {
     position: relative;
-    z-index: 1000;
+    z-index: 1;
     pointer-events: auto !important;
     min-height: 0;
     height: auto;
@@ -630,25 +649,28 @@ body {
     display: none;
 }
 
-/* Body avec les filtres - scrollable */
+/* Body avec les filtres - scrollable avec espace en bas */
 .filter-body {
     margin-bottom: 12px;
-    padding-bottom: 8px;
+    padding-bottom: 40px;
     pointer-events: auto;
     min-height: 0; /* Permet au contenu de déborder */
 }
 
-/* Groupes d'options - compact */
+/* Groupes d'options - espacement compact */
 .options-group {
     display: flex;
     flex-direction: column;
     gap: 6px;
     pointer-events: auto;
+    
+    /* Performance */
+    transform: translateZ(0);
 }
 
-/* Sections de filtres - style épuré sans bordures */
+/* Sections de filtres - style épuré compact */
 .filter-section {
-    margin-bottom: 8px;
+    margin-bottom: 0;
     pointer-events: auto;
     
     /* Pas de fond - transparent pour s'intégrer au panneau */
@@ -657,7 +679,7 @@ body {
     -webkit-backdrop-filter: none;
     border: none;
     border-radius: 0;
-    padding: 6px 0;
+    padding: 0;
     box-shadow: none;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
@@ -674,81 +696,110 @@ body {
     margin-bottom: 0;
 }
 
-/* Labels des sections - alignés à gauche avec police Inter */
+/* Labels des sections - espacement réduit et uniforme */
 .section-label {
     font-family: 'Inter', sans-serif;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1.2px;
-    color: rgba(0, 0, 0, 0.5);
-    margin-bottom: 6px;
-    margin-top: 0;
+    color: rgba(0, 0, 0, 0.4);
+    margin-top: 12px;
+    margin-bottom: 8px;
     text-align: left;
-    padding-left: 4px;
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+    padding-left: 8px;
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
     position: relative;
     z-index: 2;
+    
+    /* Performance */
+    transform: translateZ(0);
 }
 
-/* Options de filtres - layout glassmorphism compact */
+/* Premier label sans margin-top */
+.filter-section:first-child .section-label {
+    margin-top: 0;
+}
+
+/* Options de filtres - layout glassmorphism avec espace à gauche */
 .filter-options {
     display: flex;
-    gap: 5px;
+    gap: 8px;
     justify-content: flex-start;
     flex-wrap: wrap;
     pointer-events: auto;
     position: relative;
     z-index: 2;
     align-items: center;
+    padding-left: 8px;
+    
+    /* Performance */
+    transform: translateZ(0);
 }
 
 .filter-option {
-    /* Style épuré sans bordures ni fond */
+    /* Bouton glassmorphism avec états clairs - texte réduit */
     font-family: 'Inter', sans-serif;
     font-size: 9px;
     font-weight: 500;
-    line-height: 1.3;
-    padding: 5px 10px;
-    min-height: 26px;
-    border: none;
-    border-radius: 5px;
+    line-height: 1.4;
+    padding: 10px 14px;
+    min-height: 32px;
+    border: 1px solid transparent;
+    border-radius: 8px;
     background: transparent;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     cursor: pointer !important;
     pointer-events: auto !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 150ms ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
+    gap: 6px;
     position: relative;
     overflow: hidden;
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
     box-shadow: none;
+    
+    /* État inactif - texte gris clair */
+    color: rgba(0, 0, 0, 0.45);
+    
+    /* Performance 60fps */
+    will-change: background, border-color, color;
+    transform: translateZ(0);
 }
 
 .filter-option:hover {
-    background: rgba(0, 0, 0, 0.05);
-    transform: none;
-    box-shadow: none;
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.08);
+    color: rgba(0, 0, 0, 0.65);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .filter-option:active {
-    transform: scale(0.96);
-    background: rgba(0, 0, 0, 0.08);
-    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: none;
+    transform: scale(0.98) translateZ(0);
+    background: rgba(0, 0, 0, 0.06);
+    transition: all 100ms ease;
 }
 
-/* État sélectionné - fond subtil */
+/* État sélectionné/actif - fond semi-transparent gris foncé avec bordure */
 .filter-option.selected {
-    background: rgba(0, 0, 0, 0.12);
-    transform: none;
-    box-shadow: none;
+    background: rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    color: rgba(0, 0, 0, 0.9);
+    font-weight: 500;
+    box-shadow: 
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* État sélectionné + hover */
+.filter-option.selected:hover {
+    background: rgba(0, 0, 0, 0.1);
+    border-color: rgba(0, 0, 0, 0.15);
 }
 
 /* Cacher toutes les icônes par défaut */
@@ -756,36 +807,20 @@ body {
     display: none;
 }
 
-/* Texte des filtres - typographie Inter uniforme */
+/* Texte des filtres - typographie glassmorphism réduite */
 .filter-option span {
     font-family: 'Inter', sans-serif;
     font-size: 9px;
-    font-weight: 500;
-    color: rgba(0, 0, 0, 0.6);
+    font-weight: inherit;
+    color: inherit;
     white-space: nowrap;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 150ms ease;
     text-shadow: none;
     pointer-events: none !important;
     letter-spacing: 0.2px;
 }
 
-.filter-option.selected span {
-    color: rgba(0, 0, 0, 0.9);
-    font-weight: 600;
-    text-shadow: none;
-}
-
-.filter-option:hover span {
-    color: rgba(0, 0, 0, 0.75);
-    text-shadow: none;
-}
-
-.filter-option:active span {
-    color: rgba(0, 0, 0, 0.85);
-    text-shadow: none;
-}
-
-/* Drapeaux et emojis - taille harmonisée (pour Target Language uniquement) */
+/* Drapeaux et emojis - taille harmonisée réduite */
 .filter-option[data-filter="translate-target"] span {
     display: flex;
     align-items: center;
@@ -973,3 +1008,4 @@ body {
     0%, 100% { transform: translateX(0); }
     25% { transform: translateX(-5px); }
     75% { transform: translateX(5px); }
+}
