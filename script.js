@@ -149,6 +149,8 @@ class StyloApp {
     let closeTimer = null;
     let isMenuOpen = false;
     let currentAction = null;
+    let clickCooldownUntil = 0; // Prevent hover-open right after a click
+    let suppressHover = false;   // Block hover-open until mouse leaves after a click
     
     // État global partagé pour les changements instantanés
     window.styloAppState = { isMenuOpen: false, currentAction: null };
@@ -167,6 +169,15 @@ class StyloApp {
 
     // Fonction pour ouvrir le menu avec transition smooth
     const openMenu = (action) => {
+      // Ne jamais ouvrir le menu pendant un traitement en cours
+      if (this.isProcessing) {
+        console.log('🚫 Skip openMenu: processing in progress');
+        return;
+      }
+      // Suppress hover-open right after a click
+      if (Date.now() < clickCooldownUntil) {
+        return;
+      }
       clearAllTimers();
       console.log(`📂 Opening menu for: ${action}`);
       
@@ -225,6 +236,11 @@ class StyloApp {
       // Survol d'un bouton
       button.addEventListener('mouseenter', async () => {
         console.log(`🖱️ Mouse entered: ${action}, isMenuOpen: ${isMenuOpen}, currentAction: ${currentAction}`);
+        // Ne pas réagir pendant un traitement
+        if (this.isProcessing) {
+          console.log('🚫 Hover ignored: processing in progress');
+          return;
+        }
 
         // Mémoriser l'app frontmost
         if (window.electronAPI && window.electronAPI.rememberFrontmostApp) {
@@ -243,14 +259,19 @@ class StyloApp {
           console.log('🚫 Cancelled close timer');
         }
 
-        // Si le menu est déjà ouvert, changer immédiatement
+        // Si le menu est déjà ouvert, changer immédiatement (ignorer suppression)
         if (isMenuOpen || window.styloAppState.isMenuOpen) {
           console.log(`🔄 Switching instantly to: ${action}`);
-          // Changement instantané - appeler directement showPanel
+          // Changement instantané sans reset (panel déjà ouvert)
           this.showPanel(action);
           currentAction = action;
           window.styloAppState.currentAction = action;
         } else {
+          // Ne pas ouvrir par hover si un clic vient d'arriver ou tant que la souris n'a pas quitté
+          if (suppressHover || Date.now() < clickCooldownUntil) {
+            console.log('🚫 Hover suppressed after click');
+            return;
+          }
           // Sinon, programmer l'ouverture après 1.5s
           console.log(`⏱️ Scheduling open for: ${action}`);
           hoverTimer = setTimeout(() => {
@@ -268,6 +289,9 @@ class StyloApp {
           clearTimeout(hoverTimer);
           hoverTimer = null;
         }
+        // Réactiver l'ouverture par hover après sortie
+        suppressHover = false;
+        clickCooldownUntil = 0;
       });
 
       // Clic sur un bouton
@@ -276,6 +300,10 @@ class StyloApp {
         console.log(`🎯 Clicked: ${action}`);
 
         // Fermer le menu et exécuter l'action
+        // Mettre une période de cooldown pour éviter l'ouverture par hover juste après le clic
+        clickCooldownUntil = Date.now() + 1200; // un peu plus long que le délai de hover
+        suppressHover = true; // ne pas rouvrir tant que la souris n'a pas quitté
+        clearAllTimers();
         closeMenu();
         this.executeAction(action);
       });
@@ -511,15 +539,17 @@ class StyloApp {
     // Afficher les options IMMÉDIATEMENT selon l'action
     this.showOptions(action);
 
-    // Ajuster la hauteur selon le contenu visible
+    // Ajuster la hauteur selon le contenu visible (sans espace blanc en bas)
     const optionsDiv = document.getElementById('panel-options');
     let computedHeight = 0;
     if (optionsDiv) {
-      // Mesurer le contenu réel visible
       optionsDiv.style.display = 'block';
-      const rect = optionsDiv.getBoundingClientRect();
-      computedHeight = Math.min(280, Math.ceil(rect.height + 12));
     }
+    // Mesurer la hauteur exacte du contenu + padding top du panneau
+    const contentEl = panel.querySelector('.filter-content');
+    const paddingTop = parseInt(window.getComputedStyle(panel).paddingTop || '0', 10) || 0;
+    const contentHeight = contentEl ? Math.ceil(contentEl.scrollHeight) : 0;
+    computedHeight = paddingTop + contentHeight;
 
     // Afficher le panneau avec animation
     console.log('🎨 Adding show class for:', action);
@@ -528,7 +558,7 @@ class StyloApp {
     // Forcer les styles d'affichage
     panel.style.opacity = '1';
     panel.style.transform = 'translateY(0) scale(1)';
-    panel.style.maxHeight = (computedHeight || 280) + 'px';
+    panel.style.maxHeight = Math.max(0, computedHeight) + 'px';
     panel.style.pointerEvents = 'auto';
     panel.style.visibility = 'visible';
     
@@ -541,9 +571,11 @@ class StyloApp {
     const scrollTarget = panel.querySelector('.filter-content') || panel;
     this.setupFastScroll(scrollTarget);
     
-    // Redimensionner la fenêtre pour afficher le panneau (ajustée au contenu)
+    // Redimensionner la fenêtre pour afficher le panneau (ajustée au contenu, sans espace blanc)
     if (window.electronAPI && window.electronAPI.resizeWindow) {
-      const targetHeight = 50 + (computedHeight || 280); // 50 = toolbar
+      // computedHeight inclut déjà le paddingTop qui décale sous la toolbar,
+      // donc ne pas additionner 50 encore une fois pour éviter l'espace blanc.
+      const targetHeight = Math.max(50, Math.max(0, computedHeight));
       window.electronAPI.resizeWindow(200, targetHeight);
       console.log('🖼️ Window resized to:', targetHeight);
     }
@@ -1829,8 +1861,16 @@ class StyloApp {
     async callAI(text, action, options = {}) {
       // Choisir le provider selon l'action
       let provider;
+      
+      // Map action vers la clé de config
       if (action === 'enhance-prompt') {
-        provider = window.APP_CONFIG.providers.promptEnhancement || window.APP_CONFIG.providers.default;
+        provider = window.APP_CONFIG.providers.enhance || window.APP_CONFIG.providers.default;
+      } else if (action === 'rephrase-text') {
+        provider = window.APP_CONFIG.providers.rephrase || window.APP_CONFIG.providers.default;
+      } else if (action === 'translate-text') {
+        provider = window.APP_CONFIG.providers.translate || window.APP_CONFIG.providers.default;
+      } else if (action === 'voice') {
+        provider = window.APP_CONFIG.providers.voice || window.APP_CONFIG.providers.default;
       } else {
         provider = window.APP_CONFIG.providers.default;
       }
@@ -1922,7 +1962,7 @@ class StyloApp {
       console.log(`🤖 Calling Supabase ${functionUrl} (OpenRouter Llama 3.3)...`);
       console.log(`🎨 Avec les options:`, options);
       
-      // 🎯 ENVOYER LE TEXTE + LES OPTIONS
+      // 🎯 ENVOYER LE TEXTE + LES OPTIONS (spread pour que les fonctions lisent directement)
       const response = await fetch(`${window.SUPABASE_CONFIG.url}${functionUrl}`, {
         method: 'POST',
         headers: {
@@ -1931,7 +1971,8 @@ class StyloApp {
         },
         body: JSON.stringify({ 
           text,
-          options  // 🔥 Options envoyées à l'API
+          options,  // Keep options object
+          ...options  // Spread individual options
         })
       });
       
@@ -1963,7 +2004,7 @@ class StyloApp {
       console.log(`🤖 Calling Supabase ${functionUrl} (OpenAI GPT-4o-mini)...`);
       console.log(`🎨 Avec les options:`, options);
       
-      // 🎯 ENVOYER LE TEXTE + LES OPTIONS
+      // 🎯 ENVOYER LE TEXTE + LES OPTIONS (spread pour que les fonctions lisent directement)
       const response = await fetch(`${window.SUPABASE_CONFIG.url}${functionUrl}`, {
         method: 'POST',
         headers: {
@@ -1972,7 +2013,8 @@ class StyloApp {
         },
         body: JSON.stringify({ 
           text,
-          options  // 🔥 Options envoyées à l'API
+          options,  // Keep options object
+          ...options  // Spread individual options
         })
       });
       

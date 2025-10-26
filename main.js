@@ -90,21 +90,27 @@ function createWindow() {
   // Use CSS-based drag regions only; no programmatic dragging
 }
 
-// MARK: - Menu Configuration
-function createMenu() {
-  // Charger la config actuelle
+// MARK: - Helper function to get provider for action
+function getProviderForAction(action) {
   const configPath = path.join(__dirname, 'config.js');
-  let config = fs.readFileSync(configPath, 'utf8');
+  const config = fs.readFileSync(configPath, 'utf8');
   
-  // Fonction pour extraire le provider actuel
-  const getProvider = () => {
-    const regex = /default:\s*'(\w+)'/;
-    const match = config.match(regex);
-    return match ? match[1] : 'openrouter';
+  // Map des noms d'actions vers les noms de config
+  const actionMap = {
+    'rephrase': 'rephrase',
+    'translate': 'translate',
+    'enhance': 'enhance',
+    'voice': 'voice'
   };
   
-  const currentProvider = getProvider();
-  
+  const configKey = actionMap[action] || 'default';
+  const regex = new RegExp(`${configKey}:\\s*'(\\w+)'`);
+  const match = config.match(regex);
+  return match ? match[1] : 'letta';
+}
+
+// MARK: - Menu Configuration
+function createMenu() {
   const template = [
     {
       label: 'Stylo',
@@ -125,22 +131,96 @@ function createMenu() {
       label: 'Provider',
       submenu: [
         {
-          label: `LettA AI ${currentProvider === 'letta' ? '✓' : ''}`,
-          type: 'radio',
-          checked: currentProvider === 'letta',
-          click: () => updateProvider('default', 'letta')
+          label: 'Rephrase',
+          submenu: [
+            {
+              label: 'LettA AI',
+              type: 'radio',
+              checked: getProviderForAction('rephrase') === 'letta',
+              click: () => updateProvider('rephrase', 'letta')
+            },
+            {
+              label: 'OpenRouter (Llama 3.3)',
+              type: 'radio',
+              checked: getProviderForAction('rephrase') === 'openrouter',
+              click: () => updateProvider('rephrase', 'openrouter')
+            },
+            {
+              label: 'OpenAI (GPT-4o-mini)',
+              type: 'radio',
+              checked: getProviderForAction('rephrase') === 'openai',
+              click: () => updateProvider('rephrase', 'openai')
+            }
+          ]
         },
         {
-          label: `OpenRouter (Llama 3.3) ${currentProvider === 'openrouter' ? '✓' : ''}`,
-          type: 'radio',
-          checked: currentProvider === 'openrouter',
-          click: () => updateProvider('default', 'openrouter')
+          label: 'Translate',
+          submenu: [
+            {
+              label: 'LettA AI',
+              type: 'radio',
+              checked: getProviderForAction('translate') === 'letta',
+              click: () => updateProvider('translate', 'letta')
+            },
+            {
+              label: 'OpenRouter (Llama 3.3)',
+              type: 'radio',
+              checked: getProviderForAction('translate') === 'openrouter',
+              click: () => updateProvider('translate', 'openrouter')
+            },
+            {
+              label: 'OpenAI (GPT-4o-mini)',
+              type: 'radio',
+              checked: getProviderForAction('translate') === 'openai',
+              click: () => updateProvider('translate', 'openai')
+            }
+          ]
         },
         {
-          label: `OpenAI (GPT-4o-mini) ${currentProvider === 'openai' ? '✓' : ''}`,
-          type: 'radio',
-          checked: currentProvider === 'openai',
-          click: () => updateProvider('default', 'openai')
+          label: 'Enhance',
+          submenu: [
+            {
+              label: 'LettA AI',
+              type: 'radio',
+              checked: getProviderForAction('enhance') === 'letta',
+              click: () => updateProvider('enhance', 'letta')
+            },
+            {
+              label: 'OpenRouter (Llama 3.3)',
+              type: 'radio',
+              checked: getProviderForAction('enhance') === 'openrouter',
+              click: () => updateProvider('enhance', 'openrouter')
+            },
+            {
+              label: 'OpenAI (GPT-4o-mini)',
+              type: 'radio',
+              checked: getProviderForAction('enhance') === 'openai',
+              click: () => updateProvider('enhance', 'openai')
+            }
+          ]
+        },
+        {
+          label: 'Voice',
+          submenu: [
+            {
+              label: 'LettA AI',
+              type: 'radio',
+              checked: getProviderForAction('voice') === 'letta',
+              click: () => updateProvider('voice', 'letta')
+            },
+            {
+              label: 'OpenRouter (Llama 3.3)',
+              type: 'radio',
+              checked: getProviderForAction('voice') === 'openrouter',
+              click: () => updateProvider('voice', 'openrouter')
+            },
+            {
+              label: 'OpenAI (GPT-4o-mini)',
+              type: 'radio',
+              checked: getProviderForAction('voice') === 'openai',
+              click: () => updateProvider('voice', 'openai')
+            }
+          ]
         }
       ]
     },
@@ -229,18 +309,28 @@ function createTray() {
 }
 
 // Fonction pour mettre à jour le provider dans config.js
-function updateProvider(buttonName, provider) {
+function updateProvider(action, provider) {
   const configPath = path.join(__dirname, 'config.js');
   let config = fs.readFileSync(configPath, 'utf8');
   
-  // Remplacer le provider par défaut
-  const regex = new RegExp(`(default:\\s*)'\\w+'`, 'g');
+  // Map des noms d'actions
+  const actionMap = {
+    'rephrase': 'rephrase',
+    'translate': 'translate',
+    'enhance': 'enhance',
+    'voice': 'voice'
+  };
+  
+  const configKey = actionMap[action] || action;
+  
+  // Remplacer le provider pour cette action spécifique
+  const regex = new RegExp(`(${configKey}:\\s*)'\\w+'`);
   config = config.replace(regex, `$1'${provider}'`);
   
   // Sauvegarder
   fs.writeFileSync(configPath, config, 'utf8');
   
-  console.log(`✅ Provider changed: ${buttonName} → ${provider}`);
+  console.log(`✅ Provider changed: ${action} → ${provider}`);
   console.log('🔄 Restarting app to apply changes...');
   
   // REDÉMARRER L'APP COMPLÈTEMENT

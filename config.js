@@ -97,8 +97,12 @@ const APP_CONFIG = {
   //   - 'letta' (LettA AI - nouveau provider) ⭐ NOUVEAU
   //   - 'huggingface' (Prompt++ - gratuit, spécialisé prompts)
   providers: {
-    default: 'openai',  // ✍️🌍 Rephrasing et Translation - LettA par défaut
-    promptEnhancement: 'letta'  // ⭐ Enhancement utilise LettA par défaut
+    // Provider pour chaque action individuellement
+    rephrase: 'letta',        // Provider pour Rephrase (reformulation)
+    translate: 'letta',       // Provider pour Translate (traduction)
+    enhance: 'letta',         // Provider pour Enhance (amélioration de prompt)
+    voice: 'openai',          // Provider pour Voice (traitement vocal)
+    default: 'letta'          // Provider par défaut si non spécifié
   }
 };
 
