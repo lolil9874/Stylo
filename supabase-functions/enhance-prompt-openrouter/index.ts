@@ -12,8 +12,8 @@ serve(async (req) => {
   }
 
   try {
-    // Récupérer le texte depuis la requête
-    const { text } = await req.json()
+    // Récupérer le texte et les options depuis la requête
+    const { text, options = {} } = await req.json()
     
     if (!text || typeof text !== 'string') {
       return new Response(
@@ -25,11 +25,50 @@ serve(async (req) => {
       )
     }
 
+    // Extraire les paramètres des options (frontend envoie: goal, audience, detail, format)
+    const goal = options.goal || 'informative'
+    const audience = options.audience || 'general'
+    const detail = options.detail || 'balanced'
+    const format = options.format || 'paragraph'
+
     // Configuration OpenAI
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
     if (!openaiApiKey) {
       throw new Error('OpenAI API key not found')
     }
+
+    // Build dynamic system prompt based on options
+    const goalPrompts = {
+      informative: 'make this prompt more informative and comprehensive',
+      creative: 'make this prompt more creative and engaging',
+      analytical: 'make this prompt more analytical and detailed',
+      technical: 'make this prompt more technical and precise'
+    }
+    
+    const audiencePrompts = {
+      general: 'suitable for a general audience',
+      expert: 'suitable for expert-level audience',
+      beginner: 'suitable for beginners',
+      technical: 'suitable for technical users'
+    }
+    
+    const detailPrompts = {
+      concise: 'more concise and direct',
+      balanced: 'balanced level of detail',
+      detailed: 'more detailed and comprehensive'
+    }
+    
+    const formatPrompts = {
+      paragraph: 'in paragraph format',
+      bullet: 'in bullet point format',
+      numbered: 'in numbered list format'
+    }
+
+    const systemPrompt = `${goalPrompts[goal] || goalPrompts.informative}, 
+${audiencePrompts[audience] || audiencePrompts.general}, 
+${detailPrompts[detail] || detailPrompts.balanced}, 
+${formatPrompts[format] || formatPrompts.paragraph}.
+Make it more clear, specific, and effective. Return only the enhanced prompt, no explanations.`
 
     // Appel à l'API OpenAI
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -43,21 +82,11 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a prompt enhancement expert. Your task is to improve the given text/prompt to make it more clear, specific, and effective. 
-            
-            Guidelines:
-            - Make the prompt more specific and detailed
-            - Improve clarity and structure
-            - Add relevant context if needed
-            - Maintain the original intent
-            - Use clear, professional language
-            - Keep the enhanced version concise but comprehensive
-            
-            Return only the enhanced prompt, no explanations or additional text.`
+            content: 'You are a prompt enhancement expert.'
           },
           {
             role: 'user',
-            content: text
+            content: `${systemPrompt}\n\nOriginal prompt:\n${text}`
           }
         ],
         max_tokens: 1000,
@@ -83,6 +112,7 @@ serve(async (req) => {
       JSON.stringify({ 
         enhanced_text: enhancedText,
         original_text: text,
+        options_used: { goal, audience, detail, format },
         model_used: 'gpt-4o-mini'
       }),
       { 

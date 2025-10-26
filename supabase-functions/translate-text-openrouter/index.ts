@@ -12,8 +12,8 @@ serve(async (req) => {
   }
 
   try {
-    // Récupérer le texte et la langue cible depuis la requête
-    const { text, target_language = 'English', source_language = 'auto' } = await req.json()
+    // Récupérer le texte et les options depuis la requête
+    const { text, options = {} } = await req.json()
     
     if (!text || typeof text !== 'string') {
       return new Response(
@@ -25,11 +25,43 @@ serve(async (req) => {
       )
     }
 
+    // Extraire les paramètres des options (frontend envoie: target, style, context)
+    const target = options.target || 'en'
+    const style = options.style || 'standard'
+    const context = options.context || 'general'
+    
+    // Map de langue code -> langue complète
+    const languageMap: Record<string, string> = {
+      en: 'English',
+      es: 'Spanish', 
+      de: 'German',
+      fr: 'French',
+      zh: 'Chinese',
+      it: 'Italian',
+      pt: 'Portuguese',
+      ja: 'Japanese',
+      ko: 'Korean',
+      ru: 'Russian',
+      ar: 'Arabic'
+    }
+    
+    const target_language = languageMap[target] || 'English'
+    const source_language = 'auto' // Auto-detect
+    
     // Configuration OpenAI
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
     if (!openaiApiKey) {
       throw new Error('OpenAI API key not found')
     }
+
+    // Build context-based system prompt
+    const contextPrompt = context === 'business' ? 'business and professional context' 
+                       : context === 'technical' ? 'technical and specialized context'
+                       : 'general context'
+    
+    const stylePrompt = style === 'formal' ? 'formal and professional tone'
+                      : style === 'casual' ? 'casual and friendly tone'
+                      : 'natural and standard tone'
 
     // Appel à l'API OpenAI
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -43,15 +75,15 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a professional translator. Your task is to translate the given text from ${source_language} to ${target_language}.
+            content: `You are a professional translator. Translate the given text to ${target_language}, maintaining the original tone and style. Adapt to ${contextPrompt} and use a ${stylePrompt}. Return only the translated text, no explanations.
             
-            Guidelines:
-            - Provide accurate and natural translation
-            - Maintain the original tone and style
-            - Preserve formatting and structure when possible
-            - If the source language is 'auto', detect it automatically
-            - Return only the translated text, no explanations
-            - If the text is already in the target language, return it as is`
+Guidelines:
+- Provide accurate and natural translation
+- Maintain the original tone and style
+- Preserve formatting and structure when possible
+- If the source language is 'auto', detect it automatically
+- Return only the translated text, no explanations
+- If the text is already in the target language, return it as is`
           },
           {
             role: 'user',
@@ -83,6 +115,9 @@ serve(async (req) => {
         original_text: text,
         source_language: source_language,
         target_language: target_language,
+        target: target,
+        style: style,
+        context: context,
         model_used: 'gpt-4o-mini'
       }),
       { 

@@ -12,8 +12,8 @@ serve(async (req) => {
   }
 
   try {
-    // Récupérer le texte depuis la requête
-    const { text, style = 'professional' } = await req.json()
+    // Récupérer le texte et les options depuis la requête
+    const { text, options = {} } = await req.json()
     
     if (!text || typeof text !== 'string') {
       return new Response(
@@ -25,23 +25,51 @@ serve(async (req) => {
       )
     }
 
+    // Extraire les paramètres des options (frontend envoie: type, tone, length, corrections)
+    const type = options.type || 'professional'
+    const tone = options.tone || 'neutral'
+    const length = options.length || 'same'
+    const corrections = options.corrections || 'all'
+
     // Configuration OpenAI
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
     if (!openaiApiKey) {
       throw new Error('OpenAI API key not found')
     }
 
-    // Styles de reformulation disponibles
-    const stylePrompts = {
-      professional: "Rewrite this text in a professional, formal tone suitable for business communication.",
-      casual: "Rewrite this text in a casual, friendly tone for informal communication.",
-      academic: "Rewrite this text in an academic, scholarly tone with proper structure and terminology.",
-      creative: "Rewrite this text in a creative, engaging way that captures attention.",
-      concise: "Rewrite this text to be more concise and to the point while maintaining all key information.",
-      detailed: "Rewrite this text with more detail and explanation to provide comprehensive information."
+    // Build dynamic system prompt based on options
+    const typePrompts = {
+      professional: 'professional and formal tone',
+      casual: 'casual and friendly tone',
+      formal: 'highly formal and academic tone',
+      simple: 'simple and straightforward tone'
     }
+    
+    const tonePrompts = {
+      neutral: 'balanced and neutral tone',
+      friendly: 'warm and friendly tone',
+      assertive: 'confident and assertive tone',
+      persuasive: 'persuasive and compelling tone'
+    }
+    
+    const lengthPrompts = {
+      shorter: 'Make it shorter and more concise',
+      same: 'Keep approximately the same length',
+      longer: 'Expand with more detail'
+    }
+    
+    const correctionPrompt = corrections === 'all' ? 'Correct all grammar and spelling errors'
+                           : corrections === 'grammar' ? 'Focus on grammar corrections'
+                           : corrections === 'spelling' ? 'Focus on spelling corrections'
+                           : 'Minimal corrections, maintain original style'
 
-    const selectedStyle = stylePrompts[style] || stylePrompts.professional
+    const systemPrompt = `You are a text rephrasing expert. Rephrase the following text with:
+- Style: ${typePrompts[type] || typePrompts.professional}
+- Tone: ${tonePrompts[tone] || tonePrompts.neutral}
+- Length: ${lengthPrompts[length] || lengthPrompts.same}
+- Corrections: ${correctionPrompt}
+
+Maintain the original meaning and intent. Return only the rephrased text, no explanations.`
 
     // Appel à l'API OpenAI
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -55,19 +83,11 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a text rephrasing expert. Your task is to rewrite the given text according to the specified style while maintaining the original meaning and intent.
-            
-            Guidelines:
-            - Maintain the original meaning and intent
-            - Follow the specified style and tone
-            - Keep the same length approximately
-            - Ensure clarity and readability
-            - Preserve any important details or facts
-            - Return only the rephrased text, no explanations`
+            content: 'You are a professional text rephrasing assistant.'
           },
           {
             role: 'user',
-            content: `${selectedStyle}\n\nOriginal text: ${text}`
+            content: `${systemPrompt}\n\nOriginal text:\n${text}`
           }
         ],
         max_tokens: 1000,
@@ -93,7 +113,7 @@ serve(async (req) => {
       JSON.stringify({ 
         rephrased_text: rephrasedText,
         original_text: text,
-        style_used: style,
+        options_used: { type, tone, length, corrections },
         model_used: 'gpt-4o-mini'
       }),
       { 

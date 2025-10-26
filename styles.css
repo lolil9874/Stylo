@@ -35,7 +35,7 @@ body {
         0 4px 20px rgba(0, 0, 0, 0.1),
         inset 0 1px 0 rgba(255, 255, 255, 0.5);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    -webkit-app-region: drag; /* Permet de bouger la fenêtre */
+    -webkit-app-region: drag; /* Entire toolbar draggable */
 }
 
 /* Voice popup doesn't affect the main toolbar - it extends below */
@@ -50,7 +50,20 @@ body {
         0 8px 30px rgba(0, 0, 0, 0.15),
         0 0 0 1px rgba(255, 255, 255, 0.1),
         inset 0 1px 0 rgba(255, 255, 255, 0.7);
-    transform: translateY(-1px) scale(1.01); /* Zoom réduit */
+    /* Supprimer le transform sur la zone de drag pour ne pas casser le déplacement */
+    transform: none;
+}
+
+/* Thin drag handle at the very top for precise window dragging */
+.drag-handle {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px; /* very thin strip */
+    -webkit-app-region: drag; /* Only this area drags */
+    pointer-events: auto;
+    z-index: 3; /* above content but below gradient border pointer-events:none */
 }
 
 /* Bordure avec dégradé angulaire comme dans le SVG */
@@ -94,7 +107,7 @@ body {
     justify-content: center;
     width: 100%;
     height: 50px;
-    -webkit-app-region: no-drag; /* Boutons interactifs, pas draggables */
+    /* Garder la zone container draggable, seuls les boutons seront no-drag */
     position: relative;
     z-index: 2;
 }
@@ -593,7 +606,7 @@ body {
     box-shadow: none;
 
     /* Espacement optimisé - moins d'espace perdu */
-    padding: 58px 0 0 6px; /* 50px pour la toolbar, pas d'espace en bas */
+    padding: 58px 0 10px 6px; /* +10px bottom for nicer breathing room */
 
     /* Animation d'apparition fluide - plus smooth */
     opacity: 0;
@@ -608,7 +621,7 @@ body {
 .filter-modal.show {
     opacity: 1;
     transform: translateY(0) scale(1);
-    max-height: 280px; /* valeur par défaut, sera ajustée dynamiquement */
+    max-height: none; /* taille contrôlée par JS pour éviter l'espace blanc */
     /* Laisser passer les événements sur la toolbar, mais activer sur le contenu */
     pointer-events: none !important; /* container désactivé */
     overflow-y: auto !important; /* Auto permet le scroll quand nécessaire */
@@ -624,7 +637,7 @@ body {
     -ms-overflow-style: none; /* IE/Edge */
     
     /* Animation d'ouverture fluide - plus smooth */
-    animation: slideInPanel 200ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    animation: slideInPanel 180ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
     
     /* 🔥 ACCÉLÉRATION GPU MAXIMALE */
     will-change: scroll-position;
