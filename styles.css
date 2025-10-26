@@ -18,8 +18,8 @@ body {
 
 /* Floating panel with liquid glass effect - toolbar en haut */
 .floating-panel {
-    width: 180px; /* Réduit de 200px à 180px */
-    height: 45px; /* Réduit de 50px à 45px */
+    width: 200px;
+    height: 50px;
     display: flex;
     align-items: flex-start;
     justify-content: center;
@@ -29,13 +29,13 @@ body {
     border-radius: 8px;
     position: relative;
     z-index: 200; /* Au-dessus du panneau contextuel */
-    cursor: move;
     overflow: visible;
     border: 1px solid rgba(255, 255, 255, 0.3);
     box-shadow: 
         0 4px 20px rgba(0, 0, 0, 0.1),
         inset 0 1px 0 rgba(255, 255, 255, 0.5);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-app-region: drag; /* Permet de bouger la fenêtre */
 }
 
 /* Voice popup doesn't affect the main toolbar - it extends below */
@@ -50,7 +50,7 @@ body {
         0 8px 30px rgba(0, 0, 0, 0.15),
         0 0 0 1px rgba(255, 255, 255, 0.1),
         inset 0 1px 0 rgba(255, 255, 255, 0.7);
-    transform: translateY(-2px) scale(1.02);
+    transform: translateY(-1px) scale(1.01); /* Zoom réduit */
 }
 
 /* Bordure avec dégradé angulaire comme dans le SVG */
@@ -79,22 +79,22 @@ body {
     pointer-events: none !important;
 }
 
-/* Zone de déplacement */
+/* Zone de déplacement - DÉSACTIVÉ pour permettre la sélection de texte */
 .draggable-area {
-    -webkit-app-region: drag;
-    cursor: move;
+    /* -webkit-app-region: drag; */ /* Désactivé pour ne pas interférer avec la sélection */
+    /* cursor: move; */ /* Retiré pour ne pas changer le curseur */
 }
 
 /* Button container - centré verticalement à l'intérieur de la toolbar */
 .button-container {
     display: flex;
-    gap: 10px; /* Réduit de 12px à 10px */
-    padding: 10px 0; /* Réduit de 12px à 10px */
+    gap: 8px; /* Réduit de 12px à 8px */
+    padding: 8px 0; /* Réduit de 12px à 8px */
     align-items: center;
     justify-content: center;
     width: 100%;
-    height: 45px; /* Réduit pour correspondre à la nouvelle hauteur */
-    -webkit-app-region: no-drag; /* Buttons are interactive, not draggable */
+    height: 50px;
+    -webkit-app-region: no-drag; /* Boutons interactifs, pas draggables */
     position: relative;
     z-index: 2;
 }
@@ -133,10 +133,10 @@ body {
 /* Button style */
 .action-button {
     position: relative;
-    width: 32px;
-    height: 32px;
+    width: 28px; /* Réduit de 32px à 28px */
+    height: 28px; /* Réduit de 32px à 28px */
     border: none;
-    border-radius: 6px;
+    border-radius: 5px; /* Réduit de 6px à 5px */
     background: transparent;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -144,7 +144,7 @@ body {
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    -webkit-app-region: no-drag; /* Buttons are interactive, not draggable */
+    -webkit-app-region: no-drag; /* Boutons interactifs */
 }
 
 /* Hover animation avec pulsation smooth */
