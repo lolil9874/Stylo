@@ -25,9 +25,9 @@ function createWindow() {
   
   // Create the floating window - MACOS DOCK PERSISTENT CONFIGURATION
   mainWindow = new BrowserWindow({
-    width: 200,
-    height: 50,
-    x: Math.round((width - 200) / 2), // Center horizontally
+    width: 180, /* Réduit de 200 à 180 */
+    height: 45, /* Réduit de 50 à 45 */
+    x: Math.round((width - 180) / 2), // Center horizontally
     y: 50, // Position at the top
     frame: false, // No title bar
     transparent: false, // Disable transparency to prevent GPU errors and dock disappearing
